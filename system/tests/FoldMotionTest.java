@@ -209,8 +209,8 @@ public class FoldMotionTest {
         check(v2.amount(4720) <= .21f, "v2 cover begins with a gentle shadow");
         v2.activity(5000); check(v2.amount(5000) > .2f, "v2 continued opening darkens cover");
         v2.amount(6500);
-        check(v2.visibility(6710) == .5f, "retained screenshot dissolves with the shadow");
-        check(v2.amount(6920) == 0 && !v2.active(), "v2 idle releases all visuals");
+        check(v2.visibility(6810) == .5f, "retained screenshot dissolves with the shadow");
+        check(v2.amount(7120) == 0 && !v2.active(), "v2 idle releases all visuals");
         FoldMotion cycles = new FoldMotion(true);
         cycles.angle(180, true, 0); cycles.angle(90, true, 100);
         long closingCycle = cycles.sequence();
@@ -401,6 +401,21 @@ public class FoldMotionTest {
         check(!quickMotion.releasing(), "300ms onset does not shorten the 1.5s idle hold");
         quickMotion.amount(2500);
         check(quickMotion.releasing(), "original idle release still applies");
+        FoldMotion idleDissolve = new FoldMotion(true);
+        idleDissolve.angle(0, false, 0); idleDissolve.angle(90, false, 1000);
+        idleDissolve.amount(2499);
+        check(idleDissolve.visibility(2499) == 1, "idle screen stays fully visible through 1.5s hold");
+        idleDissolve.amount(2500);
+        float lastVisible = 1;
+        for (int time = 2500; time < 3120; time += 10) {
+            idleDissolve.amount(time);
+            float visible = idleDissolve.visibility(time);
+            check(visible <= lastVisible && visible >= 0, "idle dissolve never flashes brighter");
+            lastVisible = visible;
+        }
+        check(idleDissolve.active(), "V2 idle dissolve lasts beyond old 420ms fade");
+        idleDissolve.amount(3120);
+        check(!idleDissolve.active(), "idle dissolve finishes after 620ms");
         testProfile(); testGate(); testCapturePolicy();
         System.out.println("FoldMotionTest: PASS");
     }

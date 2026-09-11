@@ -1,4 +1,4 @@
-# V2 verification record — 0.4.13
+# V2 verification record — 0.4.14
 
 ## Completed locally
 
@@ -304,3 +304,19 @@ higher polling cost remain unverified.
 For 0.4.13, JVM/DEX tests, APK assembly and Android lint passed. Installation
 succeeded and the 600-second USB trial reached READY with --no-edge-blur. Physical
 onset/handoff timing feedback remains pending.
+
+## 0.4.14 idle dissolve back to the live screen
+
+The user requested a natural dissolve revealing the original screen after the
+1.5-second stationary hold. V2 idle release now uses a 620ms smootherstep envelope;
+V1 and non-idle releases keep 420ms. A single compositor layer alpha fades snapshot,
+black backing, live mask and gradient together, while the blur radius follows the
+same visibility. Perspective geometry holds during release rather than returning
+abruptly to flat. The existing midpoint/end regression was updated for the new
+idle duration; tests also check monotonic visibility and complete release.
+Device visual confirmation is pending. Additional border blur remains disabled in
+the temporary comparison, and 300ms onset confirmation is unchanged.
+
+For 0.4.14, JVM/DEX tests, APK assembly and Android lint passed. Installation
+succeeded and a new 600-second USB comparison reached READY with extra edge blur
+disabled. Physical idle-dissolve appearance remains pending.

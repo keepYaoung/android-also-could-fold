@@ -11,6 +11,7 @@ public final class FoldMotion {
     private long fadeStart = -1, movementMs;
     private long pendingHintAt = -1, sequence;
     private float fadeFrom, resolveFrom = 1;
+    private long releaseMs = RELEASE_MS;
     private Direction direction;
     private boolean inner, provisional;
     private static final long HOLD_MS = 1500, RELEASE_MS = 420;
@@ -125,12 +126,14 @@ public final class FoldMotion {
         return angleStrength;
     }
     private static float ease(float p) { return p * p * (3 - 2 * p); }
-    private void release(long now) {
+    private void release(long now) { release(now, false); }
+    private void release(long now, boolean idle) {
         if (direction == null || fadeStart >= 0) return;
         // Preserve the last rendered target across a direction change.
         fadeFrom = lastOutput;
+        releaseMs = blackGradient && idle ? 620 : RELEASE_MS;
         fadeStart = now;
-        nextHint = Math.max(nextHint, now + RELEASE_MS + (blackGradient ? 300 : 600));
+        nextHint = Math.max(nextHint, now + releaseMs + (blackGradient ? 300 : 600));
     }
     private float lastOutput;
     public float amount(long now) {
@@ -138,12 +141,12 @@ public final class FoldMotion {
         if (fadeStart < 0) {
             if (resolving >= 0 && now - resolving >= 480) release(resolving + 480);
             else if (now - started >= 10000) release(started + 10000);
-            else if (resolving < 0 && now - lastMotion >= HOLD_MS) release(lastMotion + HOLD_MS);
+            else if (resolving < 0 && now - lastMotion >= HOLD_MS) release(lastMotion + HOLD_MS, true);
         }
         if (fadeStart >= 0) {
-            float p = Math.min(1f, Math.max(0, now - fadeStart) / (float) RELEASE_MS);
+            float p = Math.min(1f, Math.max(0, now - fadeStart) / (float) releaseMs);
             if (p >= 1) { cancel(); return 0; }
-            lastOutput = fadeFrom * (1f - ease(p));
+            lastOutput = fadeFrom * visibility(now);
         } else lastOutput = strength(now);
         return lastOutput;
     }
@@ -156,7 +159,11 @@ public final class FoldMotion {
     public float innerProgress() { return Math.max(0, Math.min(1, (180 - angle) / 180f)); }
     public void reverse(long now) { release(now); }
     public float visibility(long now) {
-        return fadeStart < 0 ? 1 : 1 - ease(Math.min(1f, Math.max(0, now - fadeStart) / (float) RELEASE_MS));
+        if (fadeStart < 0) return 1;
+        float p = Math.min(1f, Math.max(0, now - fadeStart) / (float) releaseMs);
+        // A smoother start/end for the idle crossfade back to the live screen.
+        float curve = releaseMs == 620 ? p * p * p * (p * (p * 6 - 15) + 10) : ease(p);
+        return Math.max(0, Math.min(1, 1 - curve));
     }
     public long sequence() { return sequence; }
     public boolean active() { return direction != null; }

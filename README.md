@@ -35,7 +35,7 @@ app to return to V1. Mode changes restart the engine if enabled.
   relative-depth estimate; it decreases as the inner plane opens and returns flat.
   Lock-screen snapshot and mask paths both receive this blur. It dissolves with the
   effect after the existing idle hold. The combined rendering needs physical tuning.
-- **1.5 seconds without detected movement → a smooth 420 ms release**, including the retained V2 snapshot.
+- **1.5 seconds without detected movement → a 620 ms V2 dissolve back to the live screen**. Snapshot, black backing and gradient share one opacity envelope while geometry holds steady. V1 and non-idle releases retain 420 ms.
 - Reported reversals release the current effect smoothly.
 - No effect on an off display or AOD. On the lock screen, V2 attempts a redacted snapshot; blocked or blank captures use a live perspective mask.
 - Settings, pairing identity, foreground connection monitoring and a notification stop action are retained.
@@ -91,7 +91,7 @@ is interactive; long-term battery impact has not been measured.
 | Cover sensitivity adjustment in 0.3.1 | JVM tests passed; physical feedback pending |
 | App-owned wireless pairing, USB independence and reboot recovery | Not yet verified end to end |
 
-See [the 0.4.13 verification record](docs/V2_VALIDATION.md) for fixes and remaining
+See [the 0.4.14 verification record](docs/V2_VALIDATION.md) for fixes and remaining
 physical checks.
 
 Choose the **temporary USB trial** below for a ten-minute test, or the
@@ -152,7 +152,7 @@ For ongoing use and an intensity control UI, use the app setup below.
 [AGENTS.md](AGENTS.md) contains the agent workflow and user communication guidance
 (in Korean).
 
-## Single-app setup (0.4.13)
+## Single-app setup (0.4.14)
 
 **Shizuku is no longer required.** This APK includes local wireless ADB pairing,
 engine startup, and reconnection. One UI is preserved, and the V1 blur remains

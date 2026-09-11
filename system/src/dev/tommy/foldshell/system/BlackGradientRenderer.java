@@ -118,7 +118,10 @@ final class BlackGradientRenderer {
         float dt = progressTick == 0 ? 16 : Math.min(64, now - progressTick);
         if (progressTick == 0 && inner && opening) coverProgress = targetProgress;
         progressTick = now;
-        if (inner && opening && targetProgress == 0 && coverProgress > 0) {
+        if (visibility < 1) {
+            // Hold the last visible geometry while the entire layer dissolves.
+            flattenStart = -1;
+        } else if (inner && opening && targetProgress == 0 && coverProgress > 0) {
             if (flattenStart < 0) { flattenStart = now; flattenFrom = coverProgress; }
             coverProgress = CoverReveal.settleDepth(flattenFrom, now - flattenStart);
         } else {
@@ -138,7 +141,7 @@ final class BlackGradientRenderer {
         // Cover reveal already has its own envelope: multiplying by angle strength
         // again made the entrance nearly invisible before the coarse 90° event.
         int alpha = Math.round(255 * clamp(.94f * (!inner && opening
-                ? visibility * intensity : inner ? visibility * intensity : amount) * reveal));
+                ? intensity : inner ? intensity : visibility > 0 ? amount / visibility : 0) * reveal));
         int bitmapAlpha = Math.round(255 * clamp(visibility));
         if (alpha == lastAlpha && bitmapAlpha == lastVisibility && left == lastLeft && coverProgress == lastProgress) return;
         Canvas canvas = canvasSurface.lockCanvas(null);
@@ -148,7 +151,7 @@ final class BlackGradientRenderer {
             if (snapshot != null) {
                 // Fade the backing and image as one group. Otherwise the live,
                 // full-size screen shows around the reduced snapshot as a duplicate.
-                int saved = canvas.saveLayerAlpha(0, 0, pane, height, bitmapAlpha);
+                int saved = canvas.saveLayerAlpha(0, 0, pane, height, 255);
                 try {
                     paint.setAlpha(255);
                     if (inner || opening) {
@@ -192,7 +195,7 @@ final class BlackGradientRenderer {
                 outside.moveTo(targetCorners[0] * pane, targetCorners[1] * height);
                 for (int i = 2; i < 8; i += 2) outside.lineTo(targetCorners[i] * pane, targetCorners[i + 1] * height);
                 outside.close();
-                paint.setColor(Color.BLACK); paint.setAlpha(bitmapAlpha);
+                paint.setColor(Color.BLACK); paint.setAlpha(255);
                 canvas.drawPath(outside, paint);
             }
             paint.setAlpha(255);
@@ -204,6 +207,8 @@ final class BlackGradientRenderer {
         try (SurfaceControl.Transaction t = new SurfaceControl.Transaction()) {
             SurfaceControl.Transaction.class.getMethod("setLayerStack", SurfaceControl.class, int.class).invoke(t, layer, stack);
             t.setLayer(layer, 2000000);
+            // One compositor alpha fades image, backing, mask and shadow together.
+            t.setAlpha(layer, clamp(visibility));
             SurfaceControl.Transaction.class.getMethod("show", SurfaceControl.class).invoke(t, layer);
             t.apply();
         }
