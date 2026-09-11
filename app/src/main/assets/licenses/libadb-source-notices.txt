@@ -1,0 +1,78 @@
+LibADB Android BC 3.3.0 — copyright notices retained from vendored source.
+
+src/main/java/io/github/muntashirakon/adb/AbsAdbConnectionManager.java
+// SPDX-License-Identifier: GPL-3.0-or-later OR Apache-2.0
+
+
+src/main/java/io/github/muntashirakon/adb/AdbAuthenticationFailedException.java
+// SPDX-License-Identifier: BSD-3-Clause AND (GPL-3.0-or-later OR Apache-2.0)
+
+
+src/main/java/io/github/muntashirakon/adb/AdbConnection.java
+// SPDX-License-Identifier: BSD-3-Clause AND (GPL-3.0-or-later OR Apache-2.0)
+
+
+src/main/java/io/github/muntashirakon/adb/AdbInputStream.java
+// SPDX-License-Identifier: GPL-3.0-or-later OR Apache-2.0
+
+
+src/main/java/io/github/muntashirakon/adb/AdbOutputStream.java
+// SPDX-License-Identifier: GPL-3.0-or-later OR Apache-2.0
+
+
+src/main/java/io/github/muntashirakon/adb/AdbPairingRequiredException.java
+
+src/main/java/io/github/muntashirakon/adb/AdbProtocol.java
+// SPDX-License-Identifier: BSD-3-Clause AND (GPL-3.0-or-later OR Apache-2.0)
+
+
+src/main/java/io/github/muntashirakon/adb/AdbStream.java
+// SPDX-License-Identifier: BSD-3-Clause AND (GPL-3.0-or-later OR Apache-2.0)
+
+
+src/main/java/io/github/muntashirakon/adb/AndroidPubkey.java
+// SPDX-License-Identifier: GPL-3.0-or-later OR Apache-2.0
+
+
+src/main/java/io/github/muntashirakon/adb/ByteArrayNoThrowOutputStream.java
+// SPDX-License-Identifier: GPL-3.0-or-later OR Apache-2.0
+
+
+src/main/java/io/github/muntashirakon/adb/KeyPair.java
+// SPDX-License-Identifier: GPL-3.0-or-later OR Apache-2.0
+
+
+src/main/java/io/github/muntashirakon/adb/LocalServices.java
+// SPDX-License-Identifier: GPL-3.0-or-later OR Apache-2.0
+
+
+src/main/java/io/github/muntashirakon/adb/PRNGFixes.java
+// SPDX-License-Identifier: MIT AND (GPL-3.0-or-later OR Apache-2.0)
+
+
+src/main/java/io/github/muntashirakon/adb/PairingAuthCtx.java
+// SPDX-License-Identifier: GPL-3.0-or-later OR Apache-2.0
+
+
+src/main/java/io/github/muntashirakon/adb/PairingConnectionCtx.java
+// SPDX-License-Identifier: GPL-3.0-or-later OR Apache-2.0
+
+
+src/main/java/io/github/muntashirakon/adb/Spake2.java
+// SPDX-License-Identifier: GPL-3.0-or-later OR Apache-2.0
+
+
+src/main/java/io/github/muntashirakon/adb/SslUtils.java
+// SPDX-License-Identifier: GPL-3.0-or-later OR Apache-2.0
+
+
+src/main/java/io/github/muntashirakon/adb/StringCompat.java
+// SPDX-License-Identifier: GPL-3.0-or-later OR Apache-2.0
+
+
+src/main/java/io/github/muntashirakon/adb/android/AdbMdns.java
+// SPDX-License-Identifier: GPL-3.0-or-later OR Apache-2.0
+
+
+src/main/java/io/github/muntashirakon/adb/android/AndroidUtils.java
+// SPDX-License-Identifier: GPL-3.0-or-later OR Apache-2.0

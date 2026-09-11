@@ -11,11 +11,12 @@ android {
         applicationId = "dev.tommy.foldshell"
         minSdk = 31
         targetSdk = 36
-        versionCode = 4
-        versionName = "0.2.1"
+        versionCode = 5
+        versionName = "0.3.0"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
-    buildFeatures { aidl = true; buildConfig = true }
+    buildFeatures { buildConfig = true }
     sourceSets.getByName("main").java.srcDir("../system/src")
 
     buildTypes {
@@ -33,6 +34,8 @@ android {
 }
 
 dependencies {
-    implementation("dev.rikka.shizuku:api:13.1.5")
-    implementation("dev.rikka.shizuku:provider:13.1.5")
+    androidTestImplementation("androidx.test:runner:1.6.2")
+    androidTestImplementation("androidx.test.ext:junit:1.2.1")
+    implementation(project(":third_party:libadb"))
+    implementation("org.bouncycastle:bcpkix-jdk15to18:1.84")
 }

@@ -1,3 +1,5 @@
+> Historical: this describes the 0.2.x Shizuku app. Current setup: [local ADB app](LOCAL_ADB_APP.md).
+
 # Persistent Shizuku app
 
 The app uses Shizuku API/provider 13.1.5. FoldUserService is an AIDL Binder in a

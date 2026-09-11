@@ -226,9 +226,9 @@ public final class FoldShell implements SensorEventListener, DisplayManager.Disp
         motion.reset(); destroySurface();
         log("STOPPED");
     }
-    /** Called on a dedicated Looper in the Shizuku shell process. */
+    /** Called on the owning Looper in an ADB shell process. */
     public static FoldShell persistent(float intensity) throws Exception {
-        if (android.os.Process.myUid() != 2000) throw new IllegalStateException("Shizuku must run as ADB shell");
+        if (android.os.Process.myUid() != 2000) throw new IllegalStateException("Engine must run as ADB shell");
         if (!android.os.Build.MODEL.equals("SM-F966N")) throw new IllegalStateException("Unverified device: " + android.os.Build.MODEL);
         Class<?> at = Class.forName("android.app.ActivityThread");
         Object thread = at.getMethod("currentActivityThread").invoke(null);

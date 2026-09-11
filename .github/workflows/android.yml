@@ -14,7 +14,7 @@ jobs:
       - uses: android-actions/setup-android@v3
       - uses: gradle/actions/setup-gradle@v4
       - run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
-      - run: ./gradlew :app:assembleDebug :app:lintDebug --console=plain
+      - run: ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest :app:lintDebug --console=plain
       - run: python3 tools/fold-system.py build
       - uses: actions/upload-artifact@v4
         with:

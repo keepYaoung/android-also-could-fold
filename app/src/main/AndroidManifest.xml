@@ -3,8 +3,8 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    <uses-permission android:name="moe.shizuku.manager.permission.API_V23" />
-    <queries><package android:name="moe.shizuku.privileged.api" /></queries>
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <application android:name=".FoldApplication" android:allowBackup="false"
         android:icon="@drawable/ic_fold" android:dataExtractionRules="@xml/data_extraction_rules" android:label="@string/app_name" android:theme="@style/AppTheme" android:resizeableActivity="true">
         <activity android:name=".MainActivity" android:exported="true">
@@ -13,10 +13,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <provider android:name="rikka.shizuku.ShizukuProvider"
-            android:authorities="${applicationId}.shizuku" android:multiprocess="false"
-            android:enabled="true" android:exported="true"
-            android:permission="android.permission.INTERACT_ACROSS_USERS_FULL" />
+        <receiver android:name=".PairingReceiver" android:exported="false" />
         <service android:name=".KeepAliveService" android:exported="false" android:foregroundServiceType="specialUse">
             <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="User-enabled fold transition engine connection monitoring and recovery" />

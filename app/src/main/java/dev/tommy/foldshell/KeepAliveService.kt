@@ -4,7 +4,7 @@ import android.app.*
 import android.content.Intent
 import android.os.IBinder
 
-/** Visible lifecycle guardian. The compositor itself runs in Shizuku. */
+/** Visible lifecycle guardian. The compositor runs over a private local ADB stream. */
 class KeepAliveService : Service() {
     override fun onCreate() {
         super.onCreate()
@@ -21,9 +21,23 @@ class KeepAliveService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val app = application as FoldApplication
         if (intent?.action == "stop") app.setEnabled(false)
-        if (!app.enabled) { stopForeground(STOP_FOREGROUND_REMOVE); stopSelf(); return START_NOT_STICKY }
+        if (!app.enabled && !app.setupActive) { stopForeground(STOP_FOREGROUND_REMOVE); stopSelf(); return START_NOT_STICKY }
         app.restore()
+        app.main.removeCallbacks(check); app.main.post(check)
         return START_STICKY
+    }
+    private val check = object : Runnable {
+        override fun run() {
+            val app = application as FoldApplication
+            if (!app.enabled && !app.setupActive) { stopForeground(STOP_FOREGROUND_REMOVE); stopSelf(); return }
+            app.main.postDelayed(this, 5000)
+        }
+    }
+    override fun onDestroy() {
+        val app = application as FoldApplication
+        app.main.removeCallbacks(check)
+        app.stopDiscoveryIfIdle()
+        super.onDestroy()
     }
     override fun onBind(intent: Intent?): IBinder? = null
 }

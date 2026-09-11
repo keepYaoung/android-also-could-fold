@@ -14,3 +14,5 @@ dependencyResolutionManagement {
 }
 rootProject.name = "Android Also Could Fold"
 include(":app")
+
+include(":third_party:libadb")

@@ -5,8 +5,8 @@
 **Keep One UI. Make folding and unfolding feel smoother.**
 
 An experimental Android app that applies system blur during physical fold and
-unfold transitions on Galaxy Z Fold. It controls the compositor through Shizuku's
-ADB privileges, working over the home screen, apps, and lock screen without screen
+unfold transitions on Galaxy Z Fold. It controls the compositor through the app's built-in local
+ADB client, working over the home screen, apps, and lock screen without screen
 capture or replacing the launcher.
 
 ## Features
@@ -17,7 +17,7 @@ capture or replacing the launcher.
 - **1.5 seconds without detected movement → a smooth 420 ms release.**
 - Smooth release when the sensor reports a reversal in direction.
 - No visible effect while the display is off or showing AOD.
-- A Shizuku daemon that survives closing the app, saved settings, reconnection recovery, and a notification stop button.
+- A foreground connection service, saved pairing identity, automatic reconnection attempts, and a notification stop button.
 
 ## Compatibility and limitations
 
@@ -81,7 +81,7 @@ To stop before the timer expires, run this in another terminal:
 python3 tools/fold-system.py stop
 ```
 
-This command stops **only the temporary ADB engine**. Stop the Shizuku app engine
+This command stops **only the temporary ADB engine**. Stop the app engine
 from the app or its notification. Do not assume Ctrl+C or unplugging USB has stopped
 the engine; reconnect and use the command above if needed. Transferred DEX files
 may remain after automatic shutdown, but they do not run automatically.
@@ -90,70 +90,55 @@ For ongoing use and an intensity control UI, use the app setup below.
 [AGENTS.md](AGENTS.md) contains the agent workflow and user communication guidance
 (in Korean).
 
-## App setup
+## Single-app setup (0.3.0)
 
-1. Install [official Shizuku](https://shizuku.rikka.app/download/), preferably version 13.6 or newer.
-2. Follow Shizuku's instructions to **pair and start through wireless debugging**, or start it from a computer over ADB.
-3. Build and install the APK as described below, then open **Fold Transition**.
-4. Tap **Enable effect** (`효과 켜기`) and allow Shizuku access and status notifications.
-5. Fold and unfold to check the effect. Use **Disable effect** (`효과 끄기`) or the notification's **Stop** (`끄기`) action to stop it.
+**Shizuku is no longer required.** This APK includes local wireless ADB pairing,
+engine startup, and reconnection. The existing blur engine and One UI behavior
+are preserved. The new connection path is experimental: build and lint pass,
+and encrypted-identity tests pass on the Fold7, but app-owned wireless pairing,
+USB removal, and reboot recovery are not yet verified.
 
-The current app UI is in Korean. Root is not required; Shizuku must run as
-**shell UID 2000**. If an older ADB trial is running, stop it first with
-`python3 tools/fold-system.py stop`. Stopping Shizuku also stops the blur engine.
+1. If upgrading from the Shizuku version, **turn off its effect before installing**
+   the new APK. Stop any standalone trial too. The engines share a lock.
+2. Install the APK, open **Fold Transition**, and allow notifications.
+3. Connect to a trusted Wi-Fi network and enable **Developer options → Wireless debugging**.
+4. Tap **Initial connection setup** (`최초 연결 설정`) in this app. Open Android's
+   **Pair device with pairing code**, keep that dialog open, then enter its six-digit
+   code in the **Fold Transition notification**.
+5. Once pairing succeeds, return to the app and tap **Enable effect** (`효과 켜기`).
+   Stop using **Disable effect** (`효과 끄기`) or the notification's stop action.
 
-## Verify operation without USB
+The UI is currently Korean. If discovery or notifications are unavailable, use
+split screen to keep Android's code dialog open while entering its pairing port
+and code through **Enter port and code manually** (`포트와 코드 직접 입력`). The
+pairing port differs from the connection port on the main Wireless debugging page.
 
-After setup, start Shizuku using **Start via Wireless debugging** in the Shizuku
-app, then enable the effect in Fold Transition. Keep Wi-Fi enabled, unplug USB,
-and test a physical fold. App-process recovery tests alone do not prove that the
-engine survives a cable disconnection.
+The first system approval remains necessary; packaging cannot grant shell privileges
+by itself. This app stores its own encrypted ADB identity and reuses it on reconnect.
+Your computer's or Shizuku's pairing does not authorize this identity. Clearing app
+data, reinstalling without retaining data, or revoking/expiring Android's ADB
+authorization can require pairing again. See [Android's ADB documentation](https://developer.android.com/tools/adb#wireless-android11-command-line).
 
-If the effect stops, first check whether Shizuku still says **running**. A stopped
-Shizuku server also stops this app's engine; the app cannot restore shell privileges
-on its own. Start Shizuku wirelessly again, then check the effect's enabled state.
-If Shizuku is still running, check the status/error shown in Fold Transition.
+## USB removal and recovery
 
-The [official troubleshooting guide](https://shizuku.rikka.app/guide/setup/#start-via-wireless-debugging-start-by-connecting-to-a-computer-shizuku-randomly-stops)
-also recommends allowing background operation, keeping developer options and USB
-debugging enabled, and using **Default USB configuration → No data transfer**.
-A USB disconnection has stopped Shizuku on the test device; do not assume a
-computer-started session will survive unplugging without testing it.
+Unplug USB **before** enabling the new connection and test a physical fold on the
+cover, inner display, and awake lock screen. Also test unplugging during an active
+effect. A Samsung ADB restart can interrupt the engine; the app attempts to reconnect
+with its saved identity while wireless debugging remains available. This is not a
+promise of uninterrupted animation or permanent system installation.
 
-## Recovery after reboot
+The foreground service checks the engine every five seconds and retries connection
+failures with a delay of up to 30 seconds. Engine errors remain visible until you
+turn the effect off and on. Closing the activity leaves the service running. If the
+connection ends, the shell engine cleans up; a 45-second watchdog is a fallback.
 
-The app saves its enabled state and intensity. On boot or Shizuku Binder
-reconnection, it reconnects the engine if permission is still granted. A foreground
-service periodically checks its status. Repeated errors are shown in the app
-instead of triggering endless restarts.
-
-**Shizuku itself must be running first.** Shizuku 13.6 supports starting without
-root on Android 13 and newer when connected to a trusted Wi-Fi network. After
-wireless debugging pairing, it requires the following permission:
-
-```sh
-adb shell pm grant moe.shizuku.privileged.api android.permission.WRITE_SECURE_SETTINGS
-```
-
-This permission lets Shizuku's boot handler enable USB/wireless debugging and
-change the ADB authorization timeout setting. This is Shizuku's own feature,
-not a custom boot bypass. To revoke the permission, replace `grant` with `revoke`
-in the command above.
-
-Automatic recovery is not guaranteed without Wi-Fi, after Shizuku permission is
-revoked, or after the app is force-stopped. Reopen the app and Shizuku to check
-their status. Fully automatic recovery across a device reboot still requires
-separate on-device verification.
-
-If you see `CERTIFICATE_UNKNOWN`, start **Pairing** in Shizuku, open **Pair device
-with pairing code** in Android settings, and enter the six-digit code in the
-Shizuku notification while keeping the pairing dialog open. `Searching for pairing`
-means Shizuku is waiting to find that dialog. Tap **Start** after pairing succeeds.
-Connecting your computer through ADB does not also register Shizuku's wireless
-identity.
-
-References: [Shizuku 13.6 release](https://github.com/RikkaApps/Shizuku/releases/tag/v13.6.0),
-[official boot handler](https://github.com/RikkaApps/Shizuku/blob/v13.6.0/manager/src/main/java/moe/shizuku/manager/receiver/BootCompleteReceiver.kt).
+Enabled state and intensity survive restarts. Boot and app-update receivers attempt
+to restore the service, but **this version does not turn wireless debugging on**.
+After a reboot, Wi-Fi and wireless debugging must be available and Android must allow
+the background service to run. If you force-stop the app, open it again. Battery
+restrictions, lost authorization, disabled debugging, or missing Wi-Fi can prevent
+recovery. Check the status in Fold Transition; repeated pairing is unnecessary when
+the authorization is still valid.
 
 ## Build and verification
 
@@ -175,17 +160,22 @@ development signing key; release APKs require separate signing.
 
 | Path | Purpose |
 | --- | --- |
-| `app/` | Settings UI, Shizuku permissions and connection, foreground guardian, boot recovery |
+| `app/` | Settings UI, local ADB pairing and connection, foreground service, recovery |
 | `system/` | Shared compositor engine, fold state machine, gradients, JVM tests |
 | `tools/` | Standalone ADB trials and sensor diagnostics |
-| `legacy/` | Earlier screen capture prototype, excluded from the build |
+| `legacy/` | Earlier screen capture and Shizuku implementations, excluded from the build |
 | `docs/` | Device findings and implementation notes |
 
-The app has no analytics SDK and no runtime flow requiring internet, screen capture,
-or accessibility permissions. Sensor diagnostics are processed locally on the
-device; screen content is never stored or uploaded.
+The app requests Android's `INTERNET` permission for local ADB sockets and uses
+mDNS to discover this device's debugging ports. Actual ADB connections target only
+`127.0.0.1`; the app does not connect to discovered remote devices. It has no analytics,
+screen capture, or accessibility service. Sensor diagnostics stay on the device.
+The ADB private key is encrypted using Android Keystore and excluded from backup.
+
+See [the integrated connection design](docs/LOCAL_ADB_APP.md) for implementation
+and verification details.
 
 ## License
 
 [MIT](LICENSE) · Copyright © 2026 keepYaoung.
-Shizuku and Android/Gradle dependencies remain subject to their respective licenses.
+Bundled dependencies retain their own licenses; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

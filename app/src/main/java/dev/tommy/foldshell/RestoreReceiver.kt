@@ -10,8 +10,7 @@ class RestoreReceiver : BroadcastReceiver() {
         val app = context.applicationContext as FoldApplication
         if (app.enabled) {
             app.restore()
-            // Some firmware restricts background FGS starts. Binder delivery from
-            // Shizuku can still restore the daemon independently of this guardian.
+            // Background FGS policy may require reopening the app after boot.
             try { context.startForegroundService(Intent(context, KeepAliveService::class.java)) }
             catch (_: IllegalStateException) { }
         }
