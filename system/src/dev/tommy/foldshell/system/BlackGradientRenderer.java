@@ -30,8 +30,6 @@ final class BlackGradientRenderer {
     private long progressTick;
     private int lastLeft = -1;
     private float lastProgress = -1;
-    private final Camera camera = new Camera();
-    private final Matrix plane = new Matrix(), inversePlane = new Matrix();
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
 
     BlackGradientRenderer(Handler handler, Consumer<Throwable> failure) {
@@ -110,22 +108,15 @@ final class BlackGradientRenderer {
             canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
             paint.setShader(null); paint.setAlpha(255);
             if (!inner && snapshot != null) {
-                paint.setAlpha(bitmapAlpha);
-                int saved = canvas.save();
+                // Fade the backing and image as one group. Otherwise the live,
+                // full-size screen shows around the reduced snapshot as a duplicate.
+                int saved = canvas.saveLayerAlpha(0, 0, pane, height, bitmapAlpha);
                 try {
+                    paint.setAlpha(255);
                     if (opening) {
-                        // Invert the estimated panel yaw around its center. Bound the
-                        // correction and crop at panel edges; no camera/viewer tracking.
-                        camera.save();
-                        camera.setLocation(0, 0, -Math.max(pane, height) * 3f / 72f);
-                        camera.rotateY(CoverReveal.counterYaw(coverProgress));
-                        camera.getMatrix(plane);
-                        camera.restore();
-                        if (plane.invert(inversePlane)) {
-                            inversePlane.preTranslate(-pane / 2f, -height / 2f);
-                            inversePlane.postTranslate(pane / 2f, height / 2f);
-                            canvas.concat(inversePlane);
-                        }
+                        canvas.drawColor(Color.BLACK);
+                        float scale = CoverReveal.depthScale(coverProgress);
+                        canvas.scale(scale, scale, pane / 2f, height / 2f);
                     }
                     canvas.drawBitmap(snapshot, null, new Rect(0, 0, pane, height), paint);
                 } finally { canvas.restoreToCount(saved); }

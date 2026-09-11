@@ -1,4 +1,4 @@
-# V2 verification record — 0.4.3
+# V2 verification record — 0.4.4
 
 ## Completed locally
 
@@ -98,3 +98,18 @@ confirmation of visibility, correction direction and timing remains pending.
 The 0.4.3 JVM/DEX build, APK assembly and Android lint passed. APK installation
 succeeded on the connected Fold7. A 600-second USB V2 trial reached READY; this
 confirms engine startup only. Visual feedback is pending.
+
+## 0.4.4 front-facing depth retreat
+
+The user clarified that the cover image should move backward as the hinge opens;
+the 0.4.3 inverse-yaw correction did not produce the intended effect. It is replaced
+by centered, uniform perspective scaling: 1 / (1 + 0.65 * progress). The plane stays
+front-facing and retreats rather than counter-rotating. A black backing and snapshot
+fade as one group to avoid showing a full-size duplicate around the smaller image.
+Coarse hinge samples and provisional timing still limit angle fidelity. Inner and
+lock-screen gradient paths remain unchanged; depth applies only to a cover snapshot.
+Physical confirmation of retreat, timing and idle dissolve is pending.
+
+For 0.4.4, JVM/DEX tests, APK assembly and Android lint passed. Installation on the
+connected Fold7 succeeded and a fresh 600-second USB trial reached READY. This is
+startup verification; the revised depth effect still awaits physical confirmation.

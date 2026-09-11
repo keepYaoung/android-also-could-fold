@@ -271,10 +271,17 @@ public class FoldMotionTest {
                 "cover plane remains visible at first coarse opening sample");
         check(dev.tommy.foldshell.system.CoverReveal.opacity(cover.coverProgress(1000)) > .8f,
                 "cover shadow remains visible at first coarse opening sample");
+        float previousScale = 1;
         for (int i = 0; i <= 100; i++) {
-            float yaw = dev.tommy.foldshell.system.CoverReveal.counterYaw(i / 100f);
-            check(Float.isFinite(yaw) && yaw >= 0 && yaw <= 24, "estimated perspective correction is bounded");
+            float scale = dev.tommy.foldshell.system.CoverReveal.depthScale(i / 100f);
+            check(Float.isFinite(scale) && scale > .6f && scale <= previousScale,
+                    "opening moves the plane farther away without enlargement or inversion");
+            previousScale = scale;
         }
+        check(dev.tommy.foldshell.system.CoverReveal.depthScale(0) == 1,
+                "closed cover snapshot starts at native size");
+        check(dev.tommy.foldshell.system.CoverReveal.depthScale(.5f) < .8f,
+                "first coarse opening sample produces visible depth retreat");
         testProfile(); testGate(); testCapturePolicy();
         System.out.println("FoldMotionTest: PASS");
     }

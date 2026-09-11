@@ -15,6 +15,9 @@ public final class CoverReveal {
     }
     // Keep the captured plane visible through the first coarse 90-degree sample.
     public static float snapshot(float progress) { return 1 - ease((progress - .45f) / .55f); }
-    /** Bounded visual estimate, not tracked world-space stabilization. */
-    public static float counterYaw(float progress) { return 24f * ease(progress); }
+    /** Perspective size for a front-facing plane receding by 0..0.65 camera distances. */
+    public static float depthScale(float progress) {
+        float depth = .65f * Math.max(0, Math.min(1, progress));
+        return 1f / (1f + depth);
+    }
 }
