@@ -43,7 +43,7 @@ final class BlackGradientRenderer {
         this.handler = handler; this.failure = failure;
     }
     void render(String display, Object address, int w, int h, int layerStack,
-                boolean isInner, boolean isLocked, float amount, float visibility, boolean opening, float targetProgress, float intensity) throws Exception {
+                boolean isInner, boolean isLocked, float amount, float visibility, boolean opening, float targetProgress, float entryProgress, float intensity) throws Exception {
         if (closed) return;
         if (!identity.equals(display) || width != w || height != h || inner != isInner || stack != layerStack || locked != isLocked) {
             clear(); identity = display; width = w; height = h; inner = isInner; stack = layerStack; locked = isLocked;
@@ -116,7 +116,10 @@ final class BlackGradientRenderer {
         }
         long now = android.os.SystemClock.elapsedRealtime();
         float dt = progressTick == 0 ? 16 : Math.min(64, now - progressTick);
-        if (progressTick == 0 && inner && opening) coverProgress = targetProgress;
+        // Seed only when a frame can actually be drawn, after capture/fallback readiness.
+        // The endpoint target may already be zero by then; it must not erase entry.
+        if (progressTick == 0 && inner && opening)
+            coverProgress = Math.max(targetProgress, entryProgress);
         progressTick = now;
         if (visibility < 1) {
             // Hold the last visible geometry while the entire layer dissolves.

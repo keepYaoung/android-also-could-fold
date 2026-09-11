@@ -226,9 +226,11 @@ public final class FoldShell implements SensorEventListener, DisplayManager.Disp
                         info.getClass().getField("address").get(info), value(info, "logicalWidth"),
                         value(info, "logicalHeight"), value(info, "layerStack"), isInner, locked,
                         rendered * intensity, motion.visibility(now),
-                        opening, renderedDepth, intensity);
+                        opening, renderedDepth, depthStart, intensity);
                 if (!isInner && opening) {
-                    handoffDepth = blackRenderer.depthProgress(); handoffSequence = motion.sequence(); handoffAt = now;
+                    // A pending capture has no rendered depth yet; retain the sensed plane.
+                    handoffDepth = Math.max(blackRenderer.depthProgress(), renderedDepth);
+                    handoffSequence = motion.sequence(); handoffAt = now;
                 }
                 render(info, BlurProfile.depthRadius(blackRenderer.depthProgress(), isInner,
                         intensity, motion.visibility(now)));

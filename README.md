@@ -285,3 +285,5 @@ the care put into the experience will match the ambition of the technology.
 
 [MIT](LICENSE) · Copyright © 2026 keepYaoung.
 Bundled dependencies retain their own licenses; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+Cover-to-inner opening retains the incoming cover depth until the first drawable inner frame, including when the fully-open signal arrives during capture. It then aligns to the right pane within 140ms if already fully open.

@@ -338,10 +338,17 @@ public class FoldMotionTest {
                 "blur fades together with snapshot visibility");
         check(dev.tommy.foldshell.system.CoverReveal.innerStart(false, .5f, .12f) == .12f,
                 "inner handoff preserves the cover plane instead of resetting to coarse depth");
-        check(dev.tommy.foldshell.system.CoverReveal.innerStart(true, .5f, .12f) == 0,
-                "fully open endpoint overrides residual gyro depth");
+        check(dev.tommy.foldshell.system.CoverReveal.innerStart(true, .5f, .12f) == .12f,
+                "endpoint before inner visibility preserves the incoming cover plane");
         check(dev.tommy.foldshell.system.CoverReveal.innerStart(false, .3f, Float.NaN) == .3f,
                 "standalone inner start retains coarse fallback");
+        check(dev.tommy.foldshell.system.CoverReveal.innerStart(true, .5f, Float.NaN) == 0,
+                "fully open without a cover handoff must not invent a tilted entry");
+        float entry = dev.tommy.foldshell.system.CoverReveal.innerStart(true, 0, .4f);
+        check(dev.tommy.foldshell.system.CoverReveal.settleDepth(entry, 0) == .4f,
+                "first visible frame retains entry even after capture waiting");
+        check(dev.tommy.foldshell.system.CoverReveal.settleDepth(entry, 140) == 0,
+                "entry aligns within 140ms of first visible frame");
         float settling = .5f;
         for (int ms = 0; ms <= 200; ms++) {
             float depth = dev.tommy.foldshell.system.CoverReveal.settleDepth(.5f, ms);

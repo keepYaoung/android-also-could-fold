@@ -320,3 +320,18 @@ the temporary comparison, and 300ms onset confirmation is unchanged.
 For 0.4.14, JVM/DEX tests, APK assembly and Android lint passed. Installation
 succeeded and a new 600-second USB comparison reached READY with extra edge blur
 disabled. Physical idle-dissolve appearance remains pending.
+
+## 0.4.15 preserve the first inner handoff frame
+
+The user reported missing inner-left opening geometry. The endpoint could zero
+both the incoming depth and target before the inner capture became drawable.
+Preserve carried cover depth separately from the live target, seed the renderer
+only after capture/fallback readiness, then use the existing 140ms alignment.
+A pending cover capture now supplies sensed depth instead of overwriting handoff
+with renderer zero. Without a recent same-sequence cover handoff, full-open entry
+remains flat. JVM regressions cover endpoint-before-entry and exact final alignment.
+Physical confirmation is pending; extra edge blur remains off in the USB trial.
+
+For 0.4.15, JVM/DEX tests, APK assembly and lint passed. APK installation
+succeeded and the 600-second USB trial reached READY. Physical handoff appearance
+still requires user confirmation.

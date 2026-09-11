@@ -11,8 +11,8 @@ android {
         applicationId = "dev.tommy.foldshell"
         minSdk = 31
         targetSdk = 36
-        versionCode = 22
-        versionName = "0.4.14"
+        versionCode = 23
+        versionName = "0.4.15"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

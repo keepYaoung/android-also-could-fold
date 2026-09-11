@@ -257,3 +257,5 @@ shell compositor API로 켜진 패널을 캡처하며 잠금 화면에서도 보
 
 [MIT](LICENSE) · Copyright © 2026 keepYaoung.
 포함된 의존성은 각 라이선스를 따릅니다. [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)를 참고하세요.
+
+커버에서 내부로 펼칠 때는 내부 첫 표시까지 커버의 기울기를 이어받습니다. 캡처 대기 중 완전 펼침 신호가 먼저 와도 시작 형태를 보존하며, 이미 완전히 펼쳐졌다면 첫 표시부터 140ms 안에 우측 화면과 평평하게 맞춥니다.

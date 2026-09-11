@@ -34,7 +34,8 @@ public final class CoverReveal {
         out[6] = x; out[7] = 1 - inset;
     }
     public static float innerStart(boolean fullyOpen, float coarseDepth, float carriedDepth) {
-        if (fullyOpen) return 0;
+        // Preserve the incoming plane even if the endpoint precedes panel/capture readiness.
+        if (fullyOpen && !Float.isFinite(carriedDepth)) return 0;
         return Math.max(0, Math.min(1, Float.isFinite(carriedDepth) ? carriedDepth : coarseDepth));
     }
     /** Reach the exact shared plane promptly after the authoritative open endpoint. */
