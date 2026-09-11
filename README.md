@@ -28,6 +28,54 @@ Galaxy Z Fold의 접힘·펼침 움직임에 맞춰 실제 화면에 시스템 �
 구분하지 못할 수 있습니다. 켜진 화면에서 4Hz 진단 폴링을 사용하며 장시간 배터리
 영향은 아직 측정하지 않았습니다.
 
+## 앱 설치 없이 먼저 체험하기
+
+**Fold Transition APK와 Shizuku를 설치하지 않고도 같은 블러 효과를 시험할 수 있습니다.**
+PC에서 ADB로 임시 엔진을 실행하는 방식이며, 기본 **10분 후 자동 종료**됩니다.
+루팅이나 Wi-Fi 페어링은 필요하지 않습니다.
+
+PC에 Python 3, JDK 17 이상, Android SDK Platform 36 / Build Tools 36.0.0 /
+Platform Tools를 준비하세요. 휴대폰에서 **개발자 옵션 → USB 디버깅**을 켜고,
+USB 데이터 케이블로 연결한 뒤 신뢰하는 PC의 디버깅 허용 창을 승인합니다.
+
+저장소 루트에서 실행합니다. `adb`가 PATH에 없으면 SDK의 `platform-tools/adb`
+경로를 사용하세요. Python 도구는 `JAVA_HOME`과 `ANDROID_SDK_ROOT`를 읽으며,
+macOS에서는 Android Studio JDK와 기본 Android SDK 경로를 사용합니다.
+그 외 환경에서는 두 변수를 직접 설정하세요. Windows 실행은 아직 검증하지 않았습니다.
+
+```sh
+adb devices -l
+adb shell getprop ro.product.model
+python3 tools/fold-system.py run --seconds 600 --early
+```
+
+`run`이 빌드와 테스트를 수행하고 DEX를 전송한 뒤 실행합니다. APK 설치는 없지만,
+기기의 `/data/local/tmp`에 실행 파일과 잠금 파일은 생성됩니다. 지원 기기는 위에
+명시한 **SM-F966N**이며, 여러 기기가 연결되었다면 ADB에는 `-s SERIAL`,
+Python 명령에는 `--serial SERIAL`을 추가하세요.
+
+`READY`가 나오면 커버·내부 화면·켜진 잠금 화면에서 천천히 접었다 펼쳐보세요.
+1.5초 멈추면 블러가 부드럽게 사라집니다. `--early`는 움직임 시작을 추정하는
+옵션입니다. 이를 빼면 공개 각도 센서만 사용하므로 시작이 늦을 수 있습니다.
+
+- 시험 중에는 실행 터미널과 USB 연결을 유지하세요. 연결을 끊은 뒤의 지속 동작은 보장하지 않습니다.
+- **앱 방식이 켜져 있다면 먼저 앱이나 알림에서 효과를 끄세요.** 두 방식은 동시에 실행하지 않습니다.
+- 시간을 바꾸려면 `--seconds`에 1–3600을 지정합니다. 재부팅 후 자동으로 실행되지는 않습니다.
+- 화면 캡처·저장·업로드는 없습니다. 각도 추정과 배터리 측정의 한계는 위 지원 범위를 참고하세요.
+
+10분 전에 끝내려면 다른 터미널에서 실행합니다.
+
+```sh
+python3 tools/fold-system.py stop
+```
+
+이 명령은 **ADB 임시 엔진만** 중지합니다. Shizuku 앱 엔진은 앱이나 알림에서 끕니다.
+Ctrl+C나 USB 분리만으로 종료됐다고 판단하지 말고, 필요하면 다시 연결해 위 명령으로
+중지하세요. 자동 종료 후 전송된 DEX 파일은 남을 수 있지만 자동 실행되지는 않습니다.
+
+상시 사용과 강도 조절 UI가 필요하면 아래 앱 방식을 사용하세요.
+에이전트가 실행을 도울 때의 절차와 사용자 안내 문구는 [AGENTS.md](AGENTS.md)에 있습니다.
+
 ## 설치와 실행
 
 1. [공식 Shizuku](https://shizuku.rikka.app/download/)를 설치합니다. 권장 버전은 13.6 이상입니다.
