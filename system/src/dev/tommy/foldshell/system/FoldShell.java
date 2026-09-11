@@ -55,7 +55,7 @@ public final class FoldShell implements SensorEventListener, DisplayManager.Disp
     private boolean failed, standalone;
     private float rendered;
     private long lastTick;
-    private int lastRadius = -1, lastWidth, lastHeight, lastStack = -1;
+    private int lastRadius = -1, lastWidth, lastHeight, lastStack = -1, lastEdgeKey;
     private String lastDisplay = "";
     private String lastV2Identity = "";
     private boolean lastInner, lastStrongRight;
@@ -253,7 +253,10 @@ public final class FoldShell implements SensorEventListener, DisplayManager.Disp
             surface = builder.build();
             log("LAYER created valid=" + surface.isValid());
         }
-        if (radius == lastRadius && width == lastWidth && height == lastHeight && stack == lastStack && isInner == lastInner && strongRight == lastStrongRight) return;
+        boolean edgeBlur = blackRenderer != null && (isInner || motion.direction() == FoldMotion.Direction.OPENING);
+        float edgeDepth = edgeBlur ? blackRenderer.depthProgress() : 0;
+        int edgeKey = Math.round(edgeDepth * 1000);
+        if (edgeKey == lastEdgeKey && radius == lastRadius && width == lastWidth && height == lastHeight && stack == lastStack && isInner == lastInner && strongRight == lastStrongRight) return;
         try (SurfaceControl.Transaction transaction = new SurfaceControl.Transaction()) {
             layerStack.invoke(transaction, surface, stack);
             transaction.setLayer(surface, blackRenderer == null ? 2000000 : 2000001);
@@ -261,7 +264,9 @@ public final class FoldShell implements SensorEventListener, DisplayManager.Disp
             if (isInner || strongRight) {
                 // A global blur would flatten the spatial gradient, so clear it.
                 blur.invoke(transaction, surface, 0);
-                blurRegions.invoke(transaction, surface, BlurProfile.regions(width, height, radius, strongRight));
+                blurRegions.invoke(transaction, surface, edgeBlur
+                        ? BlurProfile.perspectiveRegions(width, height, radius, strongRight, edgeDepth)
+                        : BlurProfile.regions(width, height, radius, strongRight));
             } else {
                 // Closing cover keeps its uniform resolving effect.
                 blurRegions.invoke(transaction, surface, new float[0][]);
@@ -270,7 +275,7 @@ public final class FoldShell implements SensorEventListener, DisplayManager.Disp
             show.invoke(transaction, surface);
             transaction.apply();
         }
-        lastRadius = radius; lastWidth = width; lastHeight = height; lastStack = stack; lastInner = isInner; lastStrongRight = strongRight;
+        lastEdgeKey = edgeKey; lastRadius = radius; lastWidth = width; lastHeight = height; lastStack = stack; lastInner = isInner; lastStrongRight = strongRight;
     }
     private void destroySurface() {
         if (blackRenderer != null) blackRenderer.clear();

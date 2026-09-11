@@ -1,4 +1,4 @@
-# V2 verification record — 0.4.10
+# V2 verification record — 0.4.11
 
 ## Completed locally
 
@@ -256,3 +256,18 @@ capture. It continued to V2_ALIGN and END without ERROR/STOPPED. Later folds pro
 fresh inner snapshots and layers, confirming that fallback did not latch the engine
 off. This verifies recovery in the observed sequence, not that every black-frame
 cause has been eliminated; visual recurrence feedback remains pending.
+
+## 0.4.11 stronger projected-edge blur
+
+The user accepted the recovery version and requested stronger blur only at the
+projected edges and black surround. The original 32 interior gradient regions remain
+unchanged. Two soft border bands follow the slanted top/bottom and receding outer
+edge, with 1.8x blur radius capped at 360px. All regions are clipped to the selected
+pane, including only the inner left half. Region count is bounded at 162, and edge
+geometry participates in the render cache key. Zero radius removes all edge regions.
+Tests cover unchanged base regions, pane bounds, stronger edge radius, excluded image
+center, and full release. Physical appearance/performance confirmation is pending.
+
+For 0.4.11, JVM/DEX tests, APK assembly and Android lint passed. Installation
+succeeded and a new 600-second USB trial reached READY. Edge appearance and
+performance still need physical confirmation.

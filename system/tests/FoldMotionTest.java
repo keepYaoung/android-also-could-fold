@@ -369,6 +369,23 @@ public class FoldMotionTest {
                 && !dev.tommy.foldshell.system.CapturePolicy.visiblePixel(0x00ffffff)
                 && dev.tommy.foldshell.system.CapturePolicy.visiblePixel(0xff0000ff),
                 "blank/transparent snapshots fall back while visible colored pixels are accepted");
+        for (boolean right : new boolean[]{false, true}) {
+            float[][] base = dev.tommy.foldshell.system.BlurProfile.regions(1000, 2200, 70, right);
+            float[][] edges = dev.tommy.foldshell.system.BlurProfile.perspectiveRegions(1000, 2200, 70, right, .3f);
+            check(edges.length > base.length && edges.length <= 162, "edge boost stays bounded in region count");
+            for (int i = 0; i < base.length; i++) check(java.util.Arrays.equals(base[i], edges[i]),
+                    "existing interior blur gradient is preserved");
+            float centerX = right ? 400 : 600;
+            for (int i = base.length; i < edges.length; i++) {
+                float[] e = edges[i];
+                check(e[0] > 70 && e[0] <= 360 && e[2] >= 0 && e[3] >= 0 && e[4] <= 1000 && e[5] <= 2200,
+                        "strong edge blur stays inside the selected pane");
+                check(!(e[2] <= centerX && centerX < e[4] && e[3] <= 1100 && 1100 < e[5]),
+                        "extra blur does not cover the image center");
+            }
+        }
+        check(dev.tommy.foldshell.system.BlurProfile.perspectiveRegions(1000, 2200, 0, true, .5f).length == 0,
+                "edge boost disappears when base blur releases");
         testProfile(); testGate(); testCapturePolicy();
         System.out.println("FoldMotionTest: PASS");
     }

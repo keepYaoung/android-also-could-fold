@@ -20,6 +20,9 @@ Turn off **V2 · capture + black gradient** (`V2 · 캡처 + 블랙 그라디언
 app to return to V1. Mode changes restart the engine if enabled.
 
 - Overall effect intensity: **50–150%**.
+- V2 adds stronger blur around the projected edges and black surround (0.4.11),
+  preserving the existing interior gradient. The border follows the moving shape
+  and fades with the effect.
 - Blank captures and protected-layer/permission denials use the live mask plus blur
   on either panel, including unlock transitions. They do not stop the engine (0.4.10).
 - Cover-to-inner handoff carries the recent rendered depth instead of resetting it.
@@ -84,7 +87,7 @@ is interactive; long-term battery impact has not been measured.
 | Cover sensitivity adjustment in 0.3.1 | JVM tests passed; physical feedback pending |
 | App-owned wireless pairing, USB independence and reboot recovery | Not yet verified end to end |
 
-See [the 0.4.10 verification record](docs/V2_VALIDATION.md) for fixes and remaining
+See [the 0.4.11 verification record](docs/V2_VALIDATION.md) for fixes and remaining
 physical checks.
 
 Choose the **temporary USB trial** below for a ten-minute test, or the
@@ -145,7 +148,7 @@ For ongoing use and an intensity control UI, use the app setup below.
 [AGENTS.md](AGENTS.md) contains the agent workflow and user communication guidance
 (in Korean).
 
-## Single-app setup (0.4.10)
+## Single-app setup (0.4.11)
 
 **Shizuku is no longer required.** This APK includes local wireless ADB pairing,
 engine startup, and reconnection. One UI is preserved, and the V1 blur remains
