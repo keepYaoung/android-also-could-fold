@@ -90,7 +90,7 @@ For ongoing use and an intensity control UI, use the app setup below.
 [AGENTS.md](AGENTS.md) contains the agent workflow and user communication guidance
 (in Korean).
 
-## Single-app setup (0.3.1)
+## Single-app setup (0.3.2)
 
 **Shizuku is no longer required.** This APK includes local wireless ADB pairing,
 engine startup, and reconnection. The existing blur engine and One UI behavior
@@ -107,6 +107,10 @@ USB removal, and reboot recovery are not yet verified.
    code in the **Fold Transition notification**.
 5. Once pairing succeeds, return to the app and tap **Enable effect** (`효과 켜기`).
    Stop using **Disable effect** (`효과 끄기`) or the notification's stop action.
+
+The pairing notification stays available for ten minutes. Expand **Fold Transition
+initial connection** to reveal **Enter code**. If it has expired or an APK update
+interrupted setup, tap **Initial connection setup** again.
 
 The UI is currently Korean. If discovery or notifications are unavailable, use
 split screen to keep Android's code dialog open while entering its pairing port

@@ -38,7 +38,9 @@ class FoldApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         getSystemService(NotificationManager::class.java).createNotificationChannel(
-            android.app.NotificationChannel("fold", "접힘 효과와 최초 연결", NotificationManager.IMPORTANCE_LOW))
+            android.app.NotificationChannel("fold", "접힘 효과 실행 상태", NotificationManager.IMPORTANCE_LOW))
+        getSystemService(NotificationManager::class.java).createNotificationChannel(
+            android.app.NotificationChannel("fold-pairing", "최초 연결 · 코드 입력", NotificationManager.IMPORTANCE_HIGH))
         discovery = AdbDiscovery(this) { pairing, port ->
             if (pairing) { pairingPort = port; if (setupActive) main.post { pairingNotification() } }
             else { connectPort = port; retryAt = 0 }
@@ -46,7 +48,7 @@ class FoldApplication : Application() {
         io.scheduleWithFixedDelay({ try { reconcile() } catch (_: Exception) { failure("연결을 다시 확인하고 있습니다") } }, 1, 5, TimeUnit.SECONDS)
     }
     fun preparePairing() {
-        setupUntil = SystemClock.elapsedRealtime() + 180000
+        setupUntil = SystemClock.elapsedRealtime() + 600000
         startForegroundService(Intent(this, KeepAliveService::class.java))
         discovery.start()
         message = "설정에서 ‘페어링 코드로 기기 페어링’을 여세요"
@@ -57,11 +59,14 @@ class FoldApplication : Application() {
         val reply = PendingIntent.getBroadcast(this, 22, Intent(this, PairingReceiver::class.java),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE)
         val input = RemoteInput.Builder("code").setLabel("6자리 페어링 코드").build()
-        val notification = Notification.Builder(this, "fold")
+        val open = PendingIntent.getActivity(this, 22, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
+        val notification = Notification.Builder(this, "fold-pairing")
             .setSmallIcon(android.R.drawable.ic_lock_lock).setContentTitle("Fold Transition 최초 연결")
             .setContentText(if (pairingPort > 0) "코드 창을 닫지 말고 아래에 6자리 코드를 입력하세요" else "설정에서 페어링 코드 창을 열어주세요")
             .addAction(Notification.Action.Builder(null, "코드 입력", reply).addRemoteInput(input).build())
-            .setTimeoutAfter(180000).build()
+            .setStyle(Notification.BigTextStyle().bigText("설정의 페어링 코드 창을 유지한 채 이 알림을 펼쳐 ‘코드 입력’을 누르세요."))
+            .setContentIntent(open).setOngoing(true).setOnlyAlertOnce(true)
+            .setTimeoutAfter(600000).build()
         getSystemService(NotificationManager::class.java).notify(22, notification)
     }
     fun pair(port: Int, code: String) {
