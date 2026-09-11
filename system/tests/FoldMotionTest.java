@@ -81,13 +81,15 @@ public class FoldMotionTest {
         FoldMotion early = new FoldMotion();
         early.angle(0, false, 0);
         check(!early.hint(false, 100), "startup burst ignored");
-        check(early.hint(false, 1000), "early cover opening starts");
-        check(early.amount(1220) >= .6f, "cover opening is more dramatic");
-        check(early.amount(2499) >= .6f, "unconfirmed effect awaits motion until timeout");
-        early.amount(2500);
-        check(early.amount(2710) > 0 && early.amount(2920) == 0,
+        check(!early.hint(false, 1000) && !early.active(), "single cover burst stays invisible");
+        early.display(false, 1200);
+        check(early.hint(false, 1500), "continued cover opening starts despite same-panel updates");
+        check(early.amount(1720) >= .6f, "cover opening is more dramatic");
+        check(early.amount(2999) >= .6f, "unconfirmed effect awaits motion until timeout");
+        early.amount(3000);
+        check(early.amount(3210) > 0 && early.amount(3420) == 0,
                 "unconfirmed cover start also fades smoothly");
-        check(!early.hint(false, 3000), "noise retrigger cooldown");
+        check(!early.hint(false, 3500), "noise retrigger cooldown");
         early.reset();
         check(!early.hint(true, 4000), "unknown posture never guesses direction");
         early.angle(Float.NaN, true, 4100); early.angle(90, true, 4200);
@@ -101,11 +103,12 @@ public class FoldMotionTest {
         // A completed close must not consume the next opening as a reversal.
         m.reset(); m.angle(180, true, 0); m.angle(90, true, 100);
         m.amount(100); m.angle(0, true, 200);
-        check(m.hint(false, 1100), "early opening replaces closing left behind during panel-off");
-        check(m.direction() == FoldMotion.Direction.OPENING && m.amount(1320) >= .6f,
+        check(!m.hint(false, 1100), "cover confirms movement after panel-off");
+        check(m.hint(false, 1600), "early opening replaces closing left behind during panel-off");
+        check(m.direction() == FoldMotion.Direction.OPENING && m.amount(1820) >= .6f,
                 "new cover opening has visible early envelope");
-        m.angle(90, false, 1400);
-        check(!m.releasing() && m.amount(1400) == 1, "public opening confirms new cycle");
+        m.angle(90, false, 1900);
+        check(!m.releasing() && m.amount(1900) == 1, "public opening confirms new cycle");
 
         m.reset(); m.angle(180, true, 0); m.angle(90, true, 100);
         m.amount(100); m.angle(0, false, 200); m.amount(679); m.amount(680);
@@ -115,17 +118,18 @@ public class FoldMotionTest {
                 && m.amount(700) == 1, "opening angle is not lost during previous close fade");
         FoldMotion progressing = new FoldMotion();
         progressing.angle(0, false, 0);
-        check(progressing.hint(false, 1000), "opening starts from closed cover");
-        float onset = progressing.amount(1220);
-        progressing.activity(1450);
-        float continued = progressing.amount(1450);
-        progressing.activity(1900);
-        check(continued > onset && progressing.amount(1900) > continued,
+        check(!progressing.hint(false, 1000), "cover waits for confirmation");
+        check(progressing.hint(false, 1500), "opening starts from closed cover");
+        float onset = progressing.amount(1720);
+        progressing.activity(1950);
+        float continued = progressing.amount(1950);
+        progressing.activity(2400);
+        check(continued > onset && progressing.amount(2400) > continued,
                 "continued opening strengthens early cover blur");
-        progressing.angle(90, false, 2000);
-        check(progressing.amount(2000) == 1, "observed angle takes over at cover peak");
-        progressing.amount(3500);
-        check(progressing.releasing() && progressing.amount(3920) == 0,
+        progressing.angle(90, false, 2500);
+        check(progressing.amount(2500) == 1, "observed angle takes over at cover peak");
+        progressing.amount(4000);
+        check(progressing.releasing() && progressing.amount(4420) == 0,
                 "stronger opening still releases after 1.5 second hold");
         FoldMotion guarded = new FoldMotion();
         guarded.angle(180, true, 0);
@@ -144,7 +148,16 @@ public class FoldMotionTest {
         guarded.baseline(180);
         check(!guarded.hint(true, 6500), "baseline clears pending noise confirmation");
         guarded.reset(); guarded.angle(0, false, 7000);
-        check(guarded.hint(false, 8000), "cover opening still needs only one accepted burst");
+        check(!guarded.hint(false, 8000) && guarded.amount(8220) == 0, "brief cover handling stays sharp");
+        check(!guarded.hint(false, 8100), "cover duplicate callback cannot confirm");
+        check(!guarded.hint(false, 8800), "isolated cover bursts do not accumulate");
+        check(guarded.hint(false, 9300), "sustained cover movement confirms");
+        guarded.reset(); guarded.angle(0, false, 10000); guarded.hint(false, 11000);
+        guarded.angle(90, false, 11100);
+        check(guarded.active() && guarded.amount(11100) == 1, "real cover angle bypasses hint delay");
+        guarded.reset(); guarded.angle(0, false, 12000); guarded.hint(false, 13000);
+        guarded.display(true, 13100); guarded.display(false, 13200);
+        check(!guarded.hint(false, 13500), "panel changes discard pending cover evidence");
         testProfile(); testGate();
         System.out.println("FoldMotionTest: PASS");
     }

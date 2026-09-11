@@ -26,10 +26,10 @@ on other models. The engine depends on Samsung's private SurfaceControl APIs, so
 compatibility needs to be checked after One UI updates.
 
 On this device, the public hinge sensor mainly reports **0 / 90 / 180 degrees**.
-Early closing detection on the inner display requires an additional sustained
-motion signal to reduce reactions to brief handling noise. It can respond about
-0.5 seconds later than cover opening; reported angle changes start the effect
-without this extra wait.
+Early opening on the cover and early closing on the inner display both require
+a second sustained motion signal to reduce reactions to brief handling noise.
+This adds roughly 0.5 seconds to inferred onset compared with a single accepted
+burst; reported angle changes start the effect without this extra wait.
 
 Early motion is inferred from vendor event timestamps in `dumpsys sensorservice`.
 The engine does not read hidden continuous angle values. Very slow movement and
@@ -90,7 +90,7 @@ For ongoing use and an intensity control UI, use the app setup below.
 [AGENTS.md](AGENTS.md) contains the agent workflow and user communication guidance
 (in Korean).
 
-## Single-app setup (0.3.0)
+## Single-app setup (0.3.1)
 
 **Shizuku is no longer required.** This APK includes local wireless ADB pairing,
 engine startup, and reconnection. The existing blur engine and One UI behavior

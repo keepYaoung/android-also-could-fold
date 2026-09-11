@@ -50,4 +50,9 @@ and recovery have not yet been verified. Required physical checks:
 6. Reboot, make wireless debugging available, and check recovery without a new code.
 
 A successful build is not evidence that Samsung permits the local ADB session.
-Existing gradients, movement gating and 1.5-second hold/420-ms dissolve are unchanged.
+Gradients and the 1.5-second hold/420-ms dissolve are unchanged. Since 0.3.1,
+cover opening also requires two accepted motion bursts 250–700 ms apart, matching
+the existing inner closing confirmation. Isolated bursts remain invisible; public
+angle changes bypass the added confirmation. JVM regressions cover repeated display
+updates, panel changes, gaps, and direct-angle onset. Physical sensitivity tuning
+still needs user feedback.
