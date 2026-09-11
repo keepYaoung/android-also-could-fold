@@ -32,12 +32,26 @@
 5. Resolve the firmware's renamed capture API and explicitly redact protected and
    secure content. No capture policy is weakened to make the API call succeed.
 
-## Still requires a connected Fold7
+## First connected USB trial
 
-No device was listed by ADB during this verification session. The following items
-are **not passed** and must not be inferred from build or source inspection:
+After the initial offline review, SM-F966N was connected and APK 0.4.1 was installed
+successfully. Existing paired/enabled preferences were present. Wireless debugging
+was off and remained off, so app-owned wireless execution was not exercised.
+The app effect was disabled through its UI to avoid overlapping engines.
 
-- Install 0.4.1 with the existing signing key; verify settings are retained.
+A 600-second standalone USB trial (`--early --v2`) reached READY and received opening
+and closing hinge events. Observed cycles returned END with no reported engine error.
+The user confirmed that an effect is visible but needs adjustment; detailed visual
+feedback is pending. This does not establish that both panels, capture orientation,
+idle timing, or lock-screen behavior passed. A later layer-list observation found no
+V2 layer while idle; it did not sample a visible transition.
+
+## Remaining device checks
+
+The following items are **not passed** and must not be inferred from build, partial
+USB observations or source inspection:
+
+- Verify retained settings after installation (0.4.1 installation itself succeeded).
 - Complete app-owned pairing and confirm `실행 중 · 앱 자체 연결`.
 - Cover snapshot capture permission, correct orientation and right-side gradient.
 - Inner left-half gradient reveal, closing direction and panel handoff.

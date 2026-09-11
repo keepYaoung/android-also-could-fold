@@ -53,7 +53,7 @@ is interactive; long-term battery impact has not been measured.
 | --- | --- |
 | Blur on cover, inner display and awake lock screen | Physically confirmed with the earlier engine setup |
 | Build, lint and JVM motion regressions | Passed, including V2 angle response and release |
-| V2 snapshot rendering, lock-screen behavior and panel handoff | Implemented; not yet verified on-device |
+| V2 visuals | Effect visible in a USB trial; user requests tuning. Panel, capture and lock-screen checks remain pending |
 | Samsung capture API compatibility | Matched to previously pulled framework; runtime permission pending |
 | Encrypted identity storage, reload and tamper rejection | Passed on Fold7 |
 | Dedicated pairing notification in 0.3.2 | Registration confirmed on-device; completed code entry not yet confirmed |
