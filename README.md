@@ -13,7 +13,7 @@ client. Version 0.4.0 adds **V2: cover snapshot + black gradient**, with the ear
 
 | Mode | Cover display | Inner display |
 | --- | --- | --- |
-| **V2 · default, experimental** | Takes one in-memory snapshot at motion onset; a black gradient fades in from the right, then moves out to the right and dissolves as opening progresses; the snapshot dissolves into the live screen | A black gradient over the live left half fades as the device opens, and deepens as it closes |
+| **V2 · default, experimental** | Takes one in-memory snapshot at motion onset; a black gradient fades in from the right, then moves out to the right and dissolves as opening progresses; the snapshot dissolves into the live screen | The left half is captured; its center/hinge edge stays fixed while the outer left edge recedes when closing and returns when opening |
 | **V1 · live blur** | Right-heavy blur during opening | Left-half blur, strongest at the outside edge |
 
 Turn off **V2 · capture + black gradient** (`V2 · 캡처 + 블랙 그라디언트`) in the
@@ -22,15 +22,17 @@ app to return to V1. Mode changes restart the engine if enabled.
 - Overall effect intensity: **50–150%**.
 - **1.5 seconds without detected movement → a smooth 420 ms release**, including the retained V2 snapshot.
 - Reported reversals release the current effect smoothly.
-- No effect on an off display or AOD. On the lock screen, V2 uses only a live black gradient and takes no snapshot.
+- No effect on an off display or AOD. On the lock screen, V2 attempts a redacted snapshot; blocked or blank captures use a live perspective mask.
 - Settings, pairing identity, foreground connection monitoring and a notification stop action are retained.
 
-Version 0.4.5 pins the unlocked cover snapshot’s left edge and makes only its right
+Version 0.4.7 pins the cover snapshot’s left edge and makes only its right
 edge retreat, forming a perspective trapezoid over black. The black backing remains
-until release so the live screen does not show around the image. On the lock screen,
-there is no snapshot and therefore no image retreat—only the live gradient. This is an experimental visual estimate, not world-space
+until release so the live screen does not show around the image. Inner rendering
+mirrors this on the left half, keeping its hinge edge fixed. Lock-screen captures
+continue to exclude secure/protected content. If unavailable or blank, a moving black
+mask covers the area outside the projected shape; it does not warp protected content. This is an experimental visual estimate, not world-space
 stabilization: there is no viewer tracking or continuous measured hinge angle.
-Version 0.4.6 drives cover retreat from relative gyroscope Y rotation after a fold
+V2 drives cover and inner-left retreat from relative gyroscope Y rotation after a fold
 has been detected, instead of elapsed-motion timing. It samples at approximately
 50 Hz and requests a dissolve after 1.5° of estimated reverse rotation. This is
 **not a measured hinge angle**: moving the whole device can affect the estimate.
@@ -65,14 +67,14 @@ is interactive; long-term battery impact has not been measured.
 | --- | --- |
 | Blur on cover, inner display and awake lock screen | Physically confirmed with the earlier engine setup |
 | Build, lint and JVM motion regressions | Passed, including V2 angle response and release |
-| V2 visuals | Effect visible in a USB trial; user requests tuning. Panel, capture and lock-screen checks remain pending |
+| V2 visuals | 0.4.6 cover effect accepted by the user; 0.4.7 inner-left and lock-screen extension awaits physical confirmation |
 | Samsung capture API compatibility | Matched to previously pulled framework; runtime permission pending |
 | Encrypted identity storage, reload and tamper rejection | Passed on Fold7 |
 | Dedicated pairing notification in 0.3.2 | Registration confirmed on-device; completed code entry not yet confirmed |
 | Cover sensitivity adjustment in 0.3.1 | JVM tests passed; physical feedback pending |
 | App-owned wireless pairing, USB independence and reboot recovery | Not yet verified end to end |
 
-See [the 0.4.6 verification record](docs/V2_VALIDATION.md) for fixes and remaining
+See [the 0.4.7 verification record](docs/V2_VALIDATION.md) for fixes and remaining
 physical checks.
 
 Choose the **temporary USB trial** below for a ten-minute test, or the
@@ -133,7 +135,7 @@ For ongoing use and an intensity control UI, use the app setup below.
 [AGENTS.md](AGENTS.md) contains the agent workflow and user communication guidance
 (in Korean).
 
-## Single-app setup (0.4.6)
+## Single-app setup (0.4.7)
 
 **Shizuku is no longer required.** This APK includes local wireless ADB pairing,
 engine startup, and reconnection. One UI is preserved, and the V1 blur remains
@@ -243,8 +245,9 @@ The device identity test is separate from the local build and lint checks; see
 The app requests Android's `INTERNET` permission for local ADB sockets and uses
 mDNS to discover this device's debugging ports. Actual ADB connections target only
 `127.0.0.1`; the app does not connect to discovered remote devices. It has no analytics
-or accessibility service. V2 captures the unlocked cover through the shell compositor
-API, without MediaProjection. Sensor diagnostics and transient snapshots stay on the device.
+or accessibility service. V2 captures the active panel through the shell compositor API, without
+MediaProjection, including the awake lock screen with secure/protected content
+excluded. For the inner display, it immediately retains only the left half. Sensor diagnostics and transient snapshots stay on the device.
 The ADB private key is encrypted using Android Keystore and excluded from backup.
 
 See [the integrated connection design](docs/LOCAL_ADB_APP.md) for implementation

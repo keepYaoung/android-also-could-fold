@@ -10,7 +10,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 
-/** V2: one in-memory cover snapshot per motion; live inner display with a left shadow. */
+/** V2: memory snapshots, panel-specific perspective, and a redacted-lock mask fallback. */
 final class BlackGradientRenderer {
     private final Handler handler;
     private final Consumer<Throwable> failure;
@@ -25,7 +25,7 @@ final class BlackGradientRenderer {
     private final java.util.Set<Bitmap> pendingBitmaps = new java.util.HashSet<>();
     private String identity = "";
     private int width, height, stack, lastAlpha = -1, lastVisibility = -1;
-    private boolean inner, requested, snapshotAllowed;
+    private boolean inner, requested, locked, captureUnavailable;
     private float coverProgress;
     private long progressTick;
     private int lastLeft = -1;
@@ -39,12 +39,12 @@ final class BlackGradientRenderer {
         this.handler = handler; this.failure = failure;
     }
     void render(String display, Object address, int w, int h, int layerStack,
-                boolean isInner, boolean allowSnapshot, float amount, float visibility, boolean opening, float targetProgress, float intensity) throws Exception {
+                boolean isInner, boolean isLocked, float amount, float visibility, boolean opening, float targetProgress, float intensity) throws Exception {
         if (closed) return;
-        if (!identity.equals(display) || width != w || height != h || inner != isInner || stack != layerStack || snapshotAllowed != allowSnapshot) {
-            clear(); identity = display; width = w; height = h; inner = isInner; stack = layerStack; snapshotAllowed = allowSnapshot;
+        if (!identity.equals(display) || width != w || height != h || inner != isInner || stack != layerStack || locked != isLocked) {
+            clear(); identity = display; width = w; height = h; inner = isInner; stack = layerStack; locked = isLocked;
         }
-        if (!inner && snapshotAllowed && !requested) {
+        if (!requested) {
             requested = true;
             final int request = generation;
             // Use the currently active physical display, never an arbitrary first display.
@@ -54,6 +54,12 @@ final class BlackGradientRenderer {
                 try {
                     if (closed || generation != request) return;
                     bitmap = capture(physical, w, h);
+                    if (isInner) {
+                        Bitmap leftHalf = Bitmap.createBitmap(bitmap, 0, 0, w / 2, h);
+                        if (leftHalf != bitmap) bitmap.recycle();
+                        bitmap = leftHalf;
+                    }
+                    if (isLocked && isBlank(bitmap)) throw new IllegalStateException("Redacted lock snapshot is blank");
                     final Bitmap result = bitmap;
                     synchronized (pendingBitmaps) {
                         if (closed || generation != request) { result.recycle(); return; }
@@ -66,7 +72,7 @@ final class BlackGradientRenderer {
                                 if (!result.isRecycled()) result.recycle();
                             } else {
                                 snapshot = result;
-                                System.out.println("V2 snapshot ready " + w + "x" + h);
+                                System.out.println("V2 snapshot ready " + result.getWidth() + "x" + result.getHeight());
                             }
                         }
                     })) {
@@ -77,11 +83,17 @@ final class BlackGradientRenderer {
                     }
                 } catch (Throwable error) {
                     if (bitmap != null && !bitmap.isRecycled()) bitmap.recycle();
-                    handler.post(() -> { if (!closed && generation == request) failure.accept(error); });
+                    handler.post(() -> {
+                        if (closed || generation != request) return;
+                        if (isLocked) {
+                            captureUnavailable = true;
+                            System.out.println("V2 lock fallback=live-mask reason=" + error.getClass().getSimpleName());
+                        } else failure.accept(error);
+                    });
                 }
             });
         }
-        if (!inner && snapshotAllowed && snapshot == null) return;
+        if (snapshot == null && !captureUnavailable) return;
         int pane = inner ? width / 2 : width;
         if (layer == null) {
             SurfaceControl.Builder builder = new SurfaceControl.Builder().setName("FoldTransition-V2")
@@ -90,44 +102,44 @@ final class BlackGradientRenderer {
             SurfaceControl.Builder.class.getMethod("setSecure", boolean.class).invoke(builder, true);
             layer = builder.build();
             canvasSurface = new Surface(layer);
-            System.out.println("V2 layer ready panel=" + (inner ? "inner" : "cover") + " snapshotAllowed=" + snapshotAllowed);
+            System.out.println("V2 layer ready panel=" + (inner ? "inner" : "cover") + " locked=" + locked + " snapshot=" + (snapshot != null));
         }
         long now = android.os.SystemClock.elapsedRealtime();
         float dt = progressTick == 0 ? 16 : Math.min(64, now - progressTick);
+        if (progressTick == 0 && inner && opening) coverProgress = targetProgress;
         progressTick = now;
-        // Release opacity must never rewind the spatial opening animation.
-        if (!inner && opening)
-            coverProgress += Math.max(0, targetProgress - coverProgress) * Math.min(1, dt / 45f);
-        if (!inner && opening) {
+        coverProgress += (targetProgress - coverProgress) * Math.min(1, dt / 45f);
+        {
             int step = (int) (coverProgress * 5);
             if (step != diagnosticStep) {
                 diagnosticStep = step;
-                System.out.println("V2 cover progress=" + coverProgress + " scale="
+                System.out.println("V2 depth panel=" + (inner ? "inner" : "cover") + " progress=" + coverProgress + " scale="
                         + CoverReveal.depthScale(coverProgress) + " snapshot=" + (snapshot != null));
             }
         }
-        float reveal = !inner && opening ? CoverReveal.opacity(coverProgress) : 1;
+        float reveal = inner ? coverProgress : opening ? CoverReveal.opacity(coverProgress) : 1;
         int left = !inner && opening ? Math.round(pane * CoverReveal.left(coverProgress)) : 0;
         // Cover reveal already has its own envelope: multiplying by angle strength
         // again made the entrance nearly invisible before the coarse 90° event.
         int alpha = Math.round(255 * clamp(.94f * (!inner && opening
-                ? visibility * intensity : amount) * reveal));
+                ? visibility * intensity : inner ? visibility * intensity : amount) * reveal));
         int bitmapAlpha = Math.round(255 * clamp(visibility));
         if (alpha == lastAlpha && bitmapAlpha == lastVisibility && left == lastLeft && coverProgress == lastProgress) return;
         Canvas canvas = canvasSurface.lockCanvas(null);
         try {
             canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
             paint.setShader(null); paint.setAlpha(255);
-            if (!inner && snapshot != null) {
+            if (snapshot != null) {
                 // Fade the backing and image as one group. Otherwise the live,
                 // full-size screen shows around the reduced snapshot as a duplicate.
                 int saved = canvas.saveLayerAlpha(0, 0, pane, height, bitmapAlpha);
                 try {
                     paint.setAlpha(255);
-                    if (opening) {
+                    if (inner || opening) {
                         canvas.drawColor(Color.BLACK);
                         CoverReveal.corners(0, sourceCorners);
-                        CoverReveal.corners(coverProgress, targetCorners);
+                        if (inner) CoverReveal.innerCorners(coverProgress, targetCorners);
+                        else CoverReveal.corners(coverProgress, targetCorners);
                         for (int i = 0; i < 8; i += 2) {
                             sourceCorners[i] *= pane; sourceCorners[i + 1] *= height;
                             targetCorners[i] *= pane; targetCorners[i + 1] *= height;
@@ -135,10 +147,24 @@ final class BlackGradientRenderer {
                         if (!perspective.setPolyToPoly(sourceCorners, 0, targetCorners, 0, 4))
                             throw new IllegalStateException("V2 invalid cover perspective");
                         canvas.concat(perspective);
-                        paint.setAlpha(Math.round(255 * CoverReveal.snapshot(coverProgress)));
+                        paint.setAlpha(inner ? 255 : Math.round(255 * CoverReveal.snapshot(coverProgress)));
                     }
-                    canvas.drawBitmap(snapshot, null, new Rect(0, 0, pane, height), paint);
+                    canvas.drawBitmap(snapshot, new Rect(0, 0, pane, height), new Rect(0, 0, pane, height), paint);
                 } finally { canvas.restoreToCount(saved); }
+            }
+            if (snapshot == null && captureUnavailable) {
+                // Redacted/denied lock content stays live; black only the area
+                // outside the projected plane. This masks, rather than warps, it.
+                if (inner) CoverReveal.innerCorners(coverProgress, targetCorners);
+                else CoverReveal.corners(coverProgress, targetCorners);
+                Path outside = new Path();
+                outside.setFillType(Path.FillType.EVEN_ODD);
+                outside.addRect(0, 0, pane, height, Path.Direction.CW);
+                outside.moveTo(targetCorners[0] * pane, targetCorners[1] * height);
+                for (int i = 2; i < 8; i += 2) outside.lineTo(targetCorners[i] * pane, targetCorners[i + 1] * height);
+                outside.close();
+                paint.setColor(Color.BLACK); paint.setAlpha(bitmapAlpha);
+                canvas.drawPath(outside, paint);
             }
             paint.setAlpha(255);
             paint.setShader(new LinearGradient(left, 0, !inner && opening ? left + pane * .85f : pane, 0,
@@ -153,6 +179,14 @@ final class BlackGradientRenderer {
             t.apply();
         }
         lastAlpha = alpha; lastVisibility = bitmapAlpha; lastLeft = left; lastProgress = coverProgress;
+    }
+    private static boolean isBlank(Bitmap bitmap) {
+        for (int y = 0; y < bitmap.getHeight(); y += Math.max(1, bitmap.getHeight() / 32))
+            for (int x = 0; x < bitmap.getWidth(); x += Math.max(1, bitmap.getWidth() / 32)) {
+                int pixel = bitmap.getPixel(x, y);
+                if (Color.red(pixel) > 8 || Color.green(pixel) > 8 || Color.blue(pixel) > 8) return false;
+            }
+        return true;
     }
     private static float clamp(float x) { return Math.max(0, Math.min(1, x)); }
     private static Bitmap capture(long physical, int width, int height) throws Exception {
@@ -202,7 +236,7 @@ final class BlackGradientRenderer {
             finally { layer.release(); layer = null; }
         }
         if (snapshot != null) { snapshot.recycle(); snapshot = null; }
-        requested = false; identity = ""; lastAlpha = -1; lastVisibility = -1; lastLeft = -1;
+        requested = false; captureUnavailable = false; identity = ""; lastAlpha = -1; lastVisibility = -1; lastLeft = -1;
         coverProgress = 0; progressTick = 0; lastProgress = -1; diagnosticStep = -1;
     }
     void close() { closed = true; clear(); captureThread.shutdownNow(); }

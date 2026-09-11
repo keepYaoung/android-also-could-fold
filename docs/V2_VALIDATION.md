@@ -1,4 +1,4 @@
-# V2 verification record — 0.4.6
+# V2 verification record — 0.4.7
 
 ## Completed locally
 
@@ -170,3 +170,22 @@ visual synchronization and whole-device false motion require physical feedback.
 For 0.4.6, JVM/DEX tests, APK assembly and Android lint passed. Installation
 succeeded and the fresh 600-second USB trial reported COVER_GYRO registered=true
 and READY. Visual synchronization feedback remains pending.
+
+## 0.4.7 inner-left and lock-screen extension
+
+The user accepted the 0.4.6 gyro effect and requested it on the lock screen and inner
+left display. Inner captures immediately retain only the left half. The hinge edge
+is pinned, the outer left edge recedes during closing and returns during opening.
+Gyro direction is reversed for closing; tests cover both motion signs and the inner
+quadrilateral's fixed edge. Existing V1 rendering is unchanged.
+
+Awake lock screens now attempt normal redacted capture without changing secure or
+protected capture policies. Denied/blank results use a live black perspective mask,
+which clips the apparent shape but does not transform protected screen content.
+Lock/unlock is part of renderer identity, so transitions discard captures and stale
+results. No files or uploads are produced. Physical confirmation is pending.
+
+For 0.4.7, JVM/DEX tests, APK assembly and Android lint passed. Installation
+succeeded on the connected Fold7 and the 600-second USB trial reached READY
+with gyro registered. Lock capture/fallback and inner perspective remain pending
+physical verification; startup alone is not recorded as visual success.

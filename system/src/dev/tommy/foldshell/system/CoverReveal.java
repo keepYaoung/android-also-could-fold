@@ -24,6 +24,15 @@ public final class CoverReveal {
         out[4] = scale; out[5] = 1 - inset;
         out[6] = 0; out[7] = 1;
     }
+    public static void innerCorners(float progress, float[] out) {
+        corners(progress, out);
+        // Mirror the geometry, retaining TL, TR, BR, BL ordering.
+        float x = 1 - out[2], inset = out[3];
+        out[0] = x; out[1] = inset;
+        out[2] = 1; out[3] = 0;
+        out[4] = 1; out[5] = 1;
+        out[6] = x; out[7] = 1 - inset;
+    }
     /** Perspective size for a front-facing plane receding by 0..0.65 camera distances. */
     public static float depthScale(float progress) {
         float depth = .65f * Math.max(0, Math.min(1, progress));

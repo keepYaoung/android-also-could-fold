@@ -306,6 +306,22 @@ public class FoldMotionTest {
         rotation.reset();
         rotation.sample(1, 4_000_000_000L, 4000);
         check(!rotation.begin(4500), "stale gyro must not drive a new fold");
+        rotation.reset();
+        rotation.sample(0, 5_000_000_000L, 5000);
+        check(rotation.begin(5000, false), "closing uses reversed gyro direction");
+        for (int i = 1; i <= 25; i++) rotation.sample(-1,
+                5_000_000_000L + i * 20_000_000L, 5000 + i * 20);
+        check(rotation.progress() > .3f, "negative Y rotation drives closing retreat");
+        rotation.sample(2, 5_520_000_000L, 5520);
+        check(rotation.reversed(), "opening during closing requests release");
+        for (int i = 0; i <= 100; i++) {
+            dev.tommy.foldshell.system.CoverReveal.innerCorners(i / 100f, corners);
+            check(corners[2] == 1 && corners[3] == 0 && corners[4] == 1 && corners[5] == 1,
+                    "inner hinge edge stays fixed");
+            check(corners[0] == corners[6] && corners[0] >= 0 && corners[0] < 1
+                    && corners[1] >= 0 && corners[7] <= 1 && corners[1] < corners[7],
+                    "inner outer edge retreats within left half only");
+        }
         testProfile(); testGate(); testCapturePolicy();
         System.out.println("FoldMotionTest: PASS");
     }

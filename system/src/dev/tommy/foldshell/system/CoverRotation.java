@@ -8,6 +8,7 @@ public final class CoverRotation {
     private long lastNs, lastReceipt = -1;
     private float degrees, peak;
     private boolean active;
+    private float direction = 1;
     public void sample(float yRadiansPerSecond, long sensorNs, long now) {
         if (!Float.isFinite(yRadiansPerSecond)) return;
         long previous = lastNs;
@@ -21,14 +22,15 @@ public final class CoverRotation {
                 : (float) (yRadiansPerSecond * (sensorNs - previous) / 1e9 * 180 / Math.PI);
         recent.addLast(new double[]{now, delta});
         if (active) {
-            degrees = Math.max(0, Math.min(90, degrees + delta));
+            degrees = Math.max(0, Math.min(90, degrees + direction * delta));
             peak = Math.max(peak, degrees);
         }
     }
-    public boolean begin(long now) {
-        end();
+    public boolean begin(long now) { return begin(now, true); }
+    public boolean begin(long now, boolean opening) {
+        end(); direction = opening ? 1 : -1;
         if (lastReceipt < 0 || now - lastReceipt > 250) return false;
-        for (double[] row : recent) if (now - row[0] <= 500) degrees += (float) row[1];
+        for (double[] row : recent) if (now - row[0] <= 500) degrees += direction * (float) row[1];
         degrees = Math.max(0, Math.min(90, degrees)); peak = degrees;
         active = true; return true;
     }

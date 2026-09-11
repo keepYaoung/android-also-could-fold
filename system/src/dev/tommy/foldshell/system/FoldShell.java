@@ -45,7 +45,8 @@ public final class FoldShell implements SensorEventListener, DisplayManager.Disp
     private VendorMotionMonitor earlyMonitor;
     private final CoverRotation coverRotation = new CoverRotation();
     private long rotationSequence = -1;
-    private boolean gyroDriving;
+    private boolean gyroDriving, rotationInner;
+    private float depthStart, renderedDepth;
     private boolean scheduled;
     private boolean closed;
     private float intensity = 1f;
@@ -134,7 +135,7 @@ public final class FoldShell implements SensorEventListener, DisplayManager.Disp
             if (event.values.length >= 3) {
                 long now = SystemClock.elapsedRealtime();
                 coverRotation.sample(event.values[1], event.timestamp, now);
-                if (gyroDriving && motion.direction() == FoldMotion.Direction.OPENING
+                if (gyroDriving && motion.active()
                         && !motion.releasing() && coverRotation.reversed())
                     motion.reverse(now);
             }
@@ -184,21 +185,29 @@ public final class FoldShell implements SensorEventListener, DisplayManager.Disp
             lastTick = now;
             int radius = Math.round(rendered * (inner(info) ? 160 : 180) * intensity);
             if (blackRenderer != null) {
-                boolean coverOpening = !inner(info) && motion.direction() == FoldMotion.Direction.OPENING;
-                if (coverOpening && rotationSequence != motion.sequence()) {
-                    rotationSequence = motion.sequence();
-                    gyroDriving = coverRotation.begin(now);
-                    log("COVER_PROGRESS source=" + (gyroDriving ? "relative-gyro" : "coarse-hinge"));
-                } else if (!coverOpening) {
-                    coverRotation.end(); gyroDriving = false; rotationSequence = -1;
+                boolean isInner = inner(info);
+                boolean opening = motion.direction() == FoldMotion.Direction.OPENING;
+                if (rotationSequence != motion.sequence() || rotationInner != isInner) {
+                    rotationSequence = motion.sequence(); rotationInner = isInner;
+                    gyroDriving = coverRotation.begin(now, opening);
+                    depthStart = isInner && opening ? Math.max(.08f, motion.innerProgress()) : 0;
+                    renderedDepth = depthStart;
+                    log("V2_PROGRESS panel=" + (isInner ? "inner" : "cover") + " source="
+                            + (gyroDriving ? "relative-gyro" : "coarse-hinge"));
                 }
-                float coverProgress = gyroDriving ? coverRotation.progress() : motion.coverProgress(now);
-                if (motion.releasing()) coverRotation.end();
-                blackRenderer.render(String.valueOf(info.getClass().getField("uniqueId").get(info)) + "/" + motion.sequence() + "/rotation=" + value(info, "rotation"),
+                if (!motion.releasing()) {
+                    renderedDepth = gyroDriving
+                            ? isInner ? Math.max(0, Math.min(1, depthStart
+                                    + (opening ? -1 : 1) * coverRotation.progress()))
+                                    : coverRotation.progress()
+                            : isInner ? motion.innerProgress() : motion.coverProgress(now);
+                } else coverRotation.end();
+                boolean locked = keyguard.isKeyguardLocked();
+                blackRenderer.render(String.valueOf(info.getClass().getField("uniqueId").get(info)) + "/" + motion.sequence() + "/rotation=" + value(info, "rotation") + "/locked=" + locked,
                         info.getClass().getField("address").get(info), value(info, "logicalWidth"),
-                        value(info, "logicalHeight"), value(info, "layerStack"), inner(info), !keyguard.isKeyguardLocked(),
+                        value(info, "logicalHeight"), value(info, "layerStack"), isInner, locked,
                         rendered * intensity, motion.visibility(now),
-                        motion.direction() == FoldMotion.Direction.OPENING, coverProgress, intensity);
+                        opening, renderedDepth, intensity);
             } else if (radius > 0) render(info, radius);
             else destroySurface();
             scheduled = true;
