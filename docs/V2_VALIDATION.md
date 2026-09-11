@@ -247,3 +247,12 @@ For 0.4.10, JVM/DEX tests, APK assembly and Android lint passed. The failed
 standalone process was explicitly stopped; the APK installed successfully and
 a fresh 600-second USB trial reached READY. Lock/unlock recurrence verification
 and the reported black-frame reproduction remain pending.
+
+### Connected 0.4.10 recovery observation
+
+The new trace exercised capture fallback on an unlocked inner display and a locked
+inner display, then changed locked=true to locked=false with another Unavailable
+capture. It continued to V2_ALIGN and END without ERROR/STOPPED. Later folds produced
+fresh inner snapshots and layers, confirming that fallback did not latch the engine
+off. This verifies recovery in the observed sequence, not that every black-frame
+cause has been eliminated; visual recurrence feedback remains pending.
