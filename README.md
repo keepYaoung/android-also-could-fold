@@ -4,24 +4,35 @@
 
 **Keep One UI. Make folding and unfolding feel smoother.**
 
-An experimental Android app that applies system blur during physical fold and
-unfold transitions on Galaxy Z Fold. It controls the compositor through the app's
-built-in local ADB client, working over the home screen, apps, and lock screen without screen
-capture or replacing the launcher.
+An experimental Android app for physical fold and unfold transitions on Galaxy Z
+Fold. It keeps One UI and controls the compositor through a built-in local ADB
+client. Version 0.4.0 adds **V2: cover snapshot + black gradient**, with the earlier
+**V1 live blur** available through the in-app switch.
 
-## Features
+## Effects
 
-- **Cover opening:** a blur gradient that grows stronger toward the right edge.
-- **Inner display:** blur on the left half only, strongest at the outer edge and weakest near the hinge.
-- Blur strength responds to angle and motion signals, with an overall **50–150%** intensity control in the app.
-- **1.5 seconds without detected movement → a smooth 420 ms release.**
-- Smooth release when the sensor reports a reversal in direction.
-- No visible effect while the display is off or showing AOD.
-- A foreground connection service, saved pairing identity, automatic reconnection attempts, and a notification stop button.
+| Mode | Cover display | Inner display |
+| --- | --- | --- |
+| **V2 · default, experimental** | Takes one in-memory snapshot at motion onset; a black gradient grows stronger toward the right as opening progresses | A black gradient over the live left half fades as the device opens, and deepens as it closes |
+| **V1 · live blur** | Right-heavy blur during opening | Left-half blur, strongest at the outside edge |
+
+Turn off **V2 · capture + black gradient** (`V2 · 캡처 + 블랙 그라디언트`) in the
+app to return to V1. Mode changes restart the engine if enabled.
+
+- Overall effect intensity: **50–150%**.
+- **1.5 seconds without detected movement → a smooth 420 ms release**, including the retained V2 snapshot.
+- Reported reversals release the current effect smoothly.
+- No effect on an off display or AOD. On the lock screen, V2 uses only a live black gradient and takes no snapshot.
+- Settings, pairing identity, foreground connection monitoring and a notification stop action are retained.
+
+V2 snapshots are transient memory buffers, never files or uploads. Protected content
+is excluded from capture; excluded regions may appear blank. The snapshot freezes
+visible content briefly while touch still reaches the underlying app. V2 capture,
+rotation, panel handoff and physical appearance still need device verification.
 
 ## Compatibility and limitations
 
-The blur engine has been tested on **Galaxy Z Fold7 SM-F966N / Android 16**.
+The earlier blur engine has been tested on **Galaxy Z Fold7 SM-F966N / Android 16**.
 Execution is blocked on other models; other Fold7 variants are not yet supported. The engine depends on Samsung's private SurfaceControl APIs, so
 compatibility needs to be checked after One UI updates.
 
@@ -41,19 +52,20 @@ is interactive; long-term battery impact has not been measured.
 | Area | Status |
 | --- | --- |
 | Blur on cover, inner display and awake lock screen | Physically confirmed with the earlier engine setup |
-| Build, lint and JVM motion regressions | Passed |
+| Build, lint and JVM motion regressions | Passed, including V2 angle response and release |
+| V2 snapshot rendering, lock-screen behavior and panel handoff | Implemented; not yet verified on-device |
 | Encrypted identity storage, reload and tamper rejection | Passed on Fold7 |
 | Dedicated pairing notification in 0.3.2 | Registration confirmed on-device; completed code entry not yet confirmed |
 | Cover sensitivity adjustment in 0.3.1 | JVM tests passed; physical feedback pending |
 | App-owned wireless pairing, USB independence and reboot recovery | Not yet verified end to end |
 
 Choose the **temporary USB trial** below for a ten-minute test, or the
-[single-app setup](#single-app-setup-032) for saved settings and wireless connection
+[single-app setup](#single-app-setup-040) for saved settings and wireless connection
 attempts. Neither mode requires root.
 
 ## Try it without installing an app
 
-**You can try the same blur effect without installing either the Fold Transition
+**You can try the V1 blur effect without installing either the Fold Transition
 APK or Shizuku.** A computer starts a temporary engine over ADB, which automatically
 stops after **10 minutes** by default. Root and Wi-Fi pairing are not required.
 
@@ -88,7 +100,7 @@ angle sensor and may delay the effect.
 - Keep the terminal session and USB connection open during the trial. Continued operation after disconnection is not guaranteed.
 - **If the app is already enabled, turn the effect off in the app or its notification first.** Do not run both modes at once.
 - Set `--seconds` to a value from 1–3600 to change the duration. This mode does not start automatically after a reboot.
-- No screen content is captured, saved, or uploaded. See the limitations above for angle estimation and battery impact.
+- The default V1 trial does not capture the screen. Add `--v2` to test the experimental snapshot/black-gradient effect; its snapshots stay in memory. Neither mode saves or uploads screen content.
 
 To stop before the timer expires, run this in another terminal:
 
@@ -105,11 +117,11 @@ For ongoing use and an intensity control UI, use the app setup below.
 [AGENTS.md](AGENTS.md) contains the agent workflow and user communication guidance
 (in Korean).
 
-## Single-app setup (0.3.2)
+## Single-app setup (0.4.0)
 
 **Shizuku is no longer required.** This APK includes local wireless ADB pairing,
-engine startup, and reconnection. The existing blur engine and One UI behavior
-are preserved. The new connection path remains experimental; see the verification
+engine startup, and reconnection. One UI is preserved, and the V1 blur remains
+available alongside the new V2 effect. The new connection path remains experimental; see the verification
 status above before relying on it for everyday use.
 
 1. If upgrading from the Shizuku version, **turn off its effect before installing**
@@ -120,7 +132,8 @@ status above before relying on it for everyday use.
 4. Tap **Initial connection setup** (`최초 연결 설정`) in this app. Open Android's
    **Pair device with pairing code**, keep that dialog open, then enter its six-digit
    code in the **Fold Transition notification**.
-5. Once pairing succeeds, return to the app and tap **Enable effect** (`효과 켜기`).
+5. Once pairing succeeds, return to the app, choose V2 or V1, and tap
+   **Enable effect** (`효과 켜기`).
    Stop using **Disable effect** (`효과 끄기`) or the notification's stop action.
 
 The pairing notification stays available for ten minutes. Expand **Fold Transition
@@ -205,7 +218,7 @@ The device identity test is separate from the local build and lint checks; see
 | Path | Purpose |
 | --- | --- |
 | `app/` | Settings UI, local ADB pairing and connection, foreground service, recovery |
-| `system/` | Shared compositor engine, fold state machine, gradients, JVM tests |
+| `system/` | V1 blur / V2 snapshot renderer, fold state machine, gradients, JVM tests |
 | `tools/` | Standalone ADB trials and sensor diagnostics |
 | `third_party/` | Vendored local ADB library, provenance and license texts |
 | `legacy/` | Earlier screen capture and Shizuku implementations, excluded from the build |
@@ -213,8 +226,9 @@ The device identity test is separate from the local build and lint checks; see
 
 The app requests Android's `INTERNET` permission for local ADB sockets and uses
 mDNS to discover this device's debugging ports. Actual ADB connections target only
-`127.0.0.1`; the app does not connect to discovered remote devices. It has no analytics,
-screen capture, or accessibility service. Sensor diagnostics stay on the device.
+`127.0.0.1`; the app does not connect to discovered remote devices. It has no analytics
+or accessibility service. V2 captures the unlocked cover through the shell compositor
+API, without MediaProjection. Sensor diagnostics and transient snapshots stay on the device.
 The ADB private key is encrypted using Android Keystore and excluded from backup.
 
 See [the integrated connection design](docs/LOCAL_ADB_APP.md) for implementation

@@ -2,12 +2,15 @@ package dev.tommy.foldshell.system;
 
 /** Fold-only state, with bounded motion inference and explicit smooth release. */
 public final class FoldMotion {
+    private final boolean blackGradient;
+    public FoldMotion() { this(false); }
+    public FoldMotion(boolean blackGradient) { this.blackGradient = blackGradient; }
     public enum Direction { OPENING, CLOSING }
     private float previous = Float.NaN, angle;
     private long started, lastMotion, resolving = -1, nextHint;
     private long fadeStart = -1, movementMs;
     private long pendingHintAt = -1;
-    private float fadeFrom;
+    private float fadeFrom, resolveFrom = 1;
     private Direction direction;
     private boolean inner, provisional;
     private static final long HOLD_MS = 1500, RELEASE_MS = 420;
@@ -90,7 +93,10 @@ public final class FoldMotion {
         inner = isInner;
         if (direction == null || provisional || fadeStart >= 0) return;
         if (resolving < 0 && ((direction == Direction.CLOSING && !inner)
-                || (direction == Direction.OPENING && inner && angle >= 179))) resolving = now;
+                || (direction == Direction.OPENING && inner && angle >= 179))) {
+            resolving = now;
+            resolveFrom = direction == Direction.OPENING && lastOutput > 0 ? lastOutput : 1;
+        }
     }
 
     private float strength(long now) {
@@ -99,12 +105,14 @@ public final class FoldMotion {
             // Event duration fills the gaps in the coarse public angle signal;
             // it is a visual estimate, not a measured hinge angle.
             if (direction == Direction.OPENING && !inner)
-                return (.65f + .25f * Math.min(1f, movementMs / 1000f)) * ease(ramp);
+                return (blackGradient ? (.2f + .65f * Math.min(1f, movementMs / 1200f))
+                        : (.65f + .25f * Math.min(1f, movementMs / 1000f))) * ease(ramp);
             return Math.min(.5f, .18f * ease(ramp) + .32f * Math.min(1f, movementMs / 1000f));
         }
         if (resolving >= 0) {
             float p = Math.min(1f, Math.max(0, now - resolving) / 480f);
-            return direction == Direction.CLOSING ? 1f - ease(p) : 0;
+            return direction == Direction.CLOSING ? 1f - ease(p)
+                    : blackGradient ? resolveFrom * (1f - ease(p)) : 0;
         }
         float angleStrength = BlurProfile.strength(angle, inner);
         if (direction == Direction.CLOSING && inner)
@@ -133,6 +141,9 @@ public final class FoldMotion {
             lastOutput = fadeFrom * (1f - ease(p));
         } else lastOutput = strength(now);
         return lastOutput;
+    }
+    public float visibility(long now) {
+        return fadeStart < 0 ? 1 : 1 - ease(Math.min(1f, Math.max(0, now - fadeStart) / (float) RELEASE_MS));
     }
     public boolean active() { return direction != null; }
     public boolean releasing() { return fadeStart >= 0; }

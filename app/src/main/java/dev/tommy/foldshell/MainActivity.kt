@@ -48,17 +48,25 @@ class MainActivity : Activity() {
             else if (!app.paired) beginSetup()
             else withNotifications { app.setEnabled(true) }
         }
-        val strength = label("블러 강도 · ${app.intensity}%")
+        val mode = Switch(this).apply {
+            text = "V2 · 캡처 + 블랙 그라디언트"
+            isChecked = app.v2
+            setOnCheckedChangeListener { _, checked -> app.setV2(checked) }
+        }
+        root.addView(mode)
+        label("V2: 커버는 움직임 시작 시 한 장을 캡처하고 오른쪽이 점점 어두워집니다. 내부는 왼쪽 절반의 검은 그라디언트가 펼칠수록 사라집니다. 끄면 V1 블러로 돌아갑니다.", 14f)
+        label("캡처는 기기 메모리에만 잠시 유지하며 저장·전송하지 않습니다. 잠금 화면은 캡처 없이 검은 그라디언트만 표시합니다. V2는 기기 검증 전인 실험 기능입니다.", 14f)
+        val strength = label("효과 강도 · ${app.intensity}%")
         root.addView(SeekBar(this).apply {
             max = 100; progress = app.intensity - 50
-            contentDescription = "블러 강도"
+            contentDescription = "효과 강도"
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-                override fun onProgressChanged(bar: SeekBar, progress: Int, user: Boolean) { strength.text = "블러 강도 · ${progress + 50}%" }
+                override fun onProgressChanged(bar: SeekBar, progress: Int, user: Boolean) { strength.text = "효과 강도 · ${progress + 50}%" }
                 override fun onStartTrackingTouch(bar: SeekBar) {}
                 override fun onStopTrackingTouch(bar: SeekBar) { app.setIntensity(bar.progress + 50) }
             })
         })
-        label("잠금 화면에서도 동작합니다.\n1.5초 멈추면 블러가 자연스럽게 사라집니다.\n커버는 오른쪽, 내부 왼쪽 화면은 바깥쪽이 더 강합니다.")
+        label("잠금 화면에서도 동작합니다.\n1.5초 멈추면 효과가 자연스럽게 사라집니다.\n커버는 오른쪽, 내부 왼쪽 화면은 바깥쪽이 더 강합니다.")
         button("최초 연결 설정") { beginSetup() }
         button("포트와 코드 직접 입력") { manualPairing() }
         label("별도 Shizuku 앱이 필요 없습니다.\n\n① Wi-Fi와 개발자 옵션의 무선 디버깅을 켜세요.\n② ‘페어링 코드로 기기 페어링’을 여세요.\n③ 코드 창을 닫지 말고 알림창의 Fold Transition에 코드를 입력하세요.\n\n최초 승인은 필요합니다. 이후 같은 키를 재사용하며 연결을 자동으로 다시 찾습니다. USB는 분리한 상태에서 실행해주세요.", 14f)

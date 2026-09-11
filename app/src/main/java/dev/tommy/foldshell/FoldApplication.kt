@@ -33,6 +33,7 @@ class FoldApplication : Application() {
     private lateinit var discovery: AdbDiscovery
     val enabled get() = prefs.getBoolean("enabled", false)
     val intensity get() = prefs.getInt("intensity", 100)
+    val v2 get() = prefs.getBoolean("v2", true)
     val paired get() = prefs.getBoolean("paired", false)
     val setupActive get() = SystemClock.elapsedRealtime() < setupUntil
     override fun onCreate() {
@@ -110,6 +111,11 @@ class FoldApplication : Application() {
     fun stopDiscoveryIfIdle() {
         if (!enabled && !setupActive) discovery.stop()
     }
+    fun setV2(value: Boolean) {
+        prefs.edit().putBoolean("v2", value).apply()
+        engineError = null; retryAt = 0
+        io.execute { shutdownStream(); if (enabled) reconcile() }
+    }
     fun setIntensity(value: Int) {
         prefs.edit().putInt("intensity", value.coerceIn(50, 150)).apply()
         io.execute { if (ready) try { send("INTENSITY ${intensity / 100f}") } catch (_: Exception) { failure("재연결 대기") } }
@@ -141,7 +147,7 @@ class FoldApplication : Application() {
             if (!manager.connect("127.0.0.1", connectPort)) throw IllegalStateException("ADB unavailable")
             // Source path comes from PackageManager; it is never supplied by a user or mDNS.
             val apk = applicationInfo.sourceDir.replace("'", "'\\''")
-            val command = "CLASSPATH='$apk' app_process /system/bin dev.tommy.foldshell.system.LocalFoldDaemon ${intensity / 100f}"
+            val command = "CLASSPATH='$apk' app_process /system/bin dev.tommy.foldshell.system.LocalFoldDaemon ${intensity / 100f} ${if (v2) "v2" else "v1"}"
             val current = manager.openStream("shell,raw:$command")
             stream = current; ready = false; lastReply = now
             Thread({

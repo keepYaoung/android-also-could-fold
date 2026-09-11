@@ -158,6 +158,25 @@ public class FoldMotionTest {
         guarded.reset(); guarded.angle(0, false, 12000); guarded.hint(false, 13000);
         guarded.display(true, 13100); guarded.display(false, 13200);
         check(!guarded.hint(false, 13500), "panel changes discard pending cover evidence");
+        FoldMotion v2 = new FoldMotion(true);
+        v2.angle(0, false, 0); v2.angle(90, true, 100);
+        check(v2.amount(100) == 1, "v2 inner arrival starts dark at handoff");
+        v2.angle(135, true, 200);
+        check(v2.amount(200) == .5f, "v2 inner shadow retreats with opening angle");
+        v2.angle(180, true, 300);
+        check(v2.amount(300) == .5f, "endpoint resolve never jumps darker");
+        check(v2.amount(540) < .5f && v2.amount(540) > 0, "v2 inner shadow resolves smoothly");
+        v2.amount(780); check(v2.amount(1200) == 0, "v2 opening cleanup completes");
+        v2.reset(); v2.angle(0, false, 2000); v2.angle(180, true, 2100);
+        check(v2.amount(2100) == 1 && v2.amount(2340) == .5f,
+                "coarse angle jump still gives inner reveal instead of disappearing instantly");
+        v2.reset(); v2.angle(0, false, 3000);
+        check(!v2.hint(false, 4000) && v2.hint(false, 4500), "v2 preserves cover noise confirmation");
+        check(v2.amount(4720) <= .21f, "v2 cover begins with a gentle shadow");
+        v2.activity(5000); check(v2.amount(5000) > .2f, "v2 continued opening darkens cover");
+        v2.amount(6500);
+        check(v2.visibility(6710) == .5f, "retained screenshot dissolves with the shadow");
+        check(v2.amount(6920) == 0 && !v2.active(), "v2 idle releases all visuals");
         testProfile(); testGate();
         System.out.println("FoldMotionTest: PASS");
     }

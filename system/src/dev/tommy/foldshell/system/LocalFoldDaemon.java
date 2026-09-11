@@ -20,7 +20,7 @@ public final class LocalFoldDaemon {
             Looper.prepareMainLooper();
             Handler handler = new Handler(Looper.myLooper());
             FoldShell engine;
-            try { engine = FoldShell.persistent(Float.parseFloat(args[0])); }
+            try { engine = FoldShell.persistent(Float.parseFloat(args[0]), args.length > 1 && args[1].equals("v2")); }
             catch (Exception error) { System.out.println("FOLD ERROR " + error.getClass().getSimpleName() + ": " + error.getMessage()); return; }
             lastRequest = SystemClock.elapsedRealtime();
             Runnable shutdown = () -> { engine.close(); Looper.myLooper().quitSafely(); };

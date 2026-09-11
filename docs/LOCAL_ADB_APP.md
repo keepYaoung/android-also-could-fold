@@ -58,3 +58,32 @@ the existing inner closing confirmation. Isolated bursts remain invisible; publi
 angle changes bypass the added confirmation. JVM regressions cover repeated display
 updates, panel changes, gaps, and direct-angle onset. Physical sensitivity tuning
 still needs user feedback.
+
+## V2 snapshot and black gradient (0.4.0, device validation pending)
+
+The app defaults to V2, with a V1 switch to compare with the existing blur. Mode
+changes restart the owned engine. The standalone tool still defaults to V1; add
+`--v2` explicitly to its `run` command.
+
+`BlackGradientRenderer` captures the active physical cover display once per motion
+using ScreenCapture on a worker thread. The bitmap stays in process memory and is
+released on completion, panel/size change, lock-state change, screen-off or stop.
+A generation check discards asynchronous results from an earlier transition. The
+inner display uses only a transparent left-half buffer over the live screen.
+The layer has no input window. Its secure flag prevents re-capturing the snapshot.
+Capture requests explicitly exclude secure and protected content. On a locked
+screen the renderer skips the snapshot and shows only the gradient. Capture failure
+stops the engine with an error; V1 remains selectable.
+
+Both modes share motion confirmation and the 1.5-second idle/420-ms release. V2
+cover opacity grows with reported angle and inferred movement; inner opacity falls
+with opening angle. Coarse jumps directly to fully open use a 480-ms reveal from
+the prior rendered strength, or full strength if no prior frame was displayed.
+This timed reveal is a visual fallback, not a measured continuous angle.
+
+Implementation references: [AOSP ScreenCapture](https://android.googlesource.com/platform/frameworks/base/+/refs/heads/android16-release/core/java/android/window/ScreenCapture.java),
+[AOSP Surface](https://android.googlesource.com/platform/frameworks/base/+/refs/heads/android16-release/core/java/android/view/Surface.java).
+
+Build/JVM checks do not verify Samsung capture permissions or rendering. Test cover
+snapshot onset, inner reveal, reverse closing, idle cleanup, rotation, screen-off,
+locking mid-transition, and capture-failure cleanup before claiming V2 support.

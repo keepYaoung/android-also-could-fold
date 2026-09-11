@@ -17,17 +17,20 @@ import java.io.RandomAccessFile;
 import java.lang.reflect.Method;
 import java.nio.channels.FileLock;
 
-/** ADB shell prototype: compositor blur only during physical fold motion.
- * No launcher replacement, screen capture, device-state override, or input window.
- * Hidden APIs are resolved once and fail closed if the firmware changes.
+/** ADB shell compositor effects only during physical fold motion.
+ * V1 uses live blur; V2 retains one cover snapshot in memory and draws a black gradient.
+ * No launcher replacement, device-state override, or input window.
+ * Hidden API failures stop the engine if the firmware changes.
  */
 public final class FoldShell implements SensorEventListener, DisplayManager.DisplayListener {
     private static final String NAME = "FoldTransition-SystemBlur";
-    private final FoldMotion motion = new FoldMotion();
+    private final FoldMotion motion;
+    private final BlackGradientRenderer blackRenderer;
     private final Handler handler = new Handler(Looper.myLooper());
     private final SensorManager sensors;
     private final DisplayManager displays;
     private final PowerManager power;
+    private final android.app.KeyguardManager keyguard;
     private final Object displayGlobal;
     private final Method getDisplayInfo;
     private final Method effectLayer = SurfaceControl.Builder.class.getMethod("setEffectLayer");
@@ -58,10 +61,13 @@ public final class FoldShell implements SensorEventListener, DisplayManager.Disp
     private static void log(String message) {
         System.out.println(SystemClock.elapsedRealtime() + " " + message);
     }
-    private FoldShell(Context context) throws Exception {
+    private FoldShell(Context context, boolean v2) throws Exception {
+        motion = new FoldMotion(v2);
+        blackRenderer = v2 ? new BlackGradientRenderer(handler, this::fail) : null;
         sensors = context.getSystemService(SensorManager.class);
         displays = context.getSystemService(DisplayManager.class);
         power = context.getSystemService(PowerManager.class);
+        keyguard = context.getSystemService(android.app.KeyguardManager.class);
         Class<?> global = Class.forName("android.hardware.display.DisplayManagerGlobal");
         displayGlobal = global.getMethod("getInstance").invoke(null);
         getDisplayInfo = global.getMethod("getDisplayInfo", int.class);
@@ -110,7 +116,7 @@ public final class FoldShell implements SensorEventListener, DisplayManager.Disp
         });
         if (duration > 0) handler.postDelayed(() -> { close(); Looper.myLooper().quitSafely(); }, duration);
         log("READY sensor=" + hinge.getName() + " durationMs=" + duration
-                + " effects=physical-fold-only backend=experimental-compositor-blur");
+                + " effects=physical-fold-only backend=" + (blackRenderer == null ? "compositor-blur" : "v2-snapshot-gradient"));
     }
 
     @Override public void onSensorChanged(SensorEvent event) {
@@ -157,7 +163,12 @@ public final class FoldShell implements SensorEventListener, DisplayManager.Disp
             rendered += (target - rendered) * Math.min(1f, dt / (motion.releasing() ? 55f : 120f));
             lastTick = now;
             int radius = Math.round(rendered * (inner(info) ? 160 : 180) * intensity);
-            if (radius > 0) render(info, radius);
+            if (blackRenderer != null) {
+                blackRenderer.render(String.valueOf(info.getClass().getField("uniqueId").get(info)),
+                        info.getClass().getField("address").get(info), value(info, "logicalWidth"),
+                        value(info, "logicalHeight"), value(info, "layerStack"), inner(info), !keyguard.isKeyguardLocked(),
+                        rendered * intensity, motion.visibility(now));
+            } else if (radius > 0) render(info, radius);
             else destroySurface();
             scheduled = true;
             handler.postDelayed(frame, 16);
@@ -200,6 +211,7 @@ public final class FoldShell implements SensorEventListener, DisplayManager.Disp
         lastRadius = radius; lastWidth = width; lastHeight = height; lastStack = stack; lastInner = isInner; lastStrongRight = strongRight;
     }
     private void destroySurface() {
+        if (blackRenderer != null) blackRenderer.clear();
         if (surface != null) {
             try (SurfaceControl.Transaction transaction = new SurfaceControl.Transaction()) {
                 hide.invoke(transaction, surface);
@@ -224,17 +236,19 @@ public final class FoldShell implements SensorEventListener, DisplayManager.Disp
         sensors.unregisterListener(this);
         displays.unregisterDisplayListener(this);
         motion.reset(); destroySurface();
+        if (blackRenderer != null) blackRenderer.close();
         log("STOPPED");
     }
     /** Called on the owning Looper in an ADB shell process. */
-    public static FoldShell persistent(float intensity) throws Exception {
+    public static FoldShell persistent(float intensity) throws Exception { return persistent(intensity, false); }
+    public static FoldShell persistent(float intensity, boolean v2) throws Exception {
         if (android.os.Process.myUid() != 2000) throw new IllegalStateException("Engine must run as ADB shell");
         if (!android.os.Build.MODEL.equals("SM-F966N")) throw new IllegalStateException("Unverified device: " + android.os.Build.MODEL);
         Class<?> at = Class.forName("android.app.ActivityThread");
         Object thread = at.getMethod("currentActivityThread").invoke(null);
         if (thread == null) thread = at.getMethod("systemMain").invoke(null);
         Context system = (Context) at.getMethod("getSystemContext").invoke(thread);
-        FoldShell shell = new FoldShell(system.createPackageContext("com.android.shell", 0));
+        FoldShell shell = new FoldShell(system.createPackageContext("com.android.shell", 0), v2);
         shell.setIntensity(intensity);
         try { shell.start(0, true); } catch (Exception error) { shell.close(); throw error; }
         return shell;
@@ -262,8 +276,8 @@ public final class FoldShell implements SensorEventListener, DisplayManager.Disp
             Object thread = activityThread.getMethod("systemMain").invoke(null);
             Context system = (Context) activityThread.getMethod("getSystemContext").invoke(thread);
             Context context = system.createPackageContext("com.android.shell", 0);
-            FoldShell shell = new FoldShell(context);
-            try { shell.start(seconds * 1000, args.length > 1 && args[1].equals("early")); Looper.loop(); }
+            FoldShell shell = new FoldShell(context, java.util.Arrays.asList(args).contains("v2"));
+            try { shell.start(seconds * 1000, java.util.Arrays.asList(args).contains("early")); Looper.loop(); }
             finally { shell.close(); }
             if (shell.failed) exitCode = 1;
         }
