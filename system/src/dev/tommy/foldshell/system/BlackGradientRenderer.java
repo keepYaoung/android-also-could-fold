@@ -180,6 +180,8 @@ final class BlackGradientRenderer {
         }
         lastAlpha = alpha; lastVisibility = bitmapAlpha; lastLeft = left; lastProgress = coverProgress;
     }
+    float depthProgress() { return coverProgress; }
+
     private static boolean isBlank(Bitmap bitmap) {
         for (int y = 0; y < bitmap.getHeight(); y += Math.max(1, bitmap.getHeight() / 32))
             for (int x = 0; x < bitmap.getWidth(); x += Math.max(1, bitmap.getWidth() / 32)) {

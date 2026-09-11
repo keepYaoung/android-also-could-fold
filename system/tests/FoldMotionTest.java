@@ -322,6 +322,20 @@ public class FoldMotionTest {
                     && corners[1] >= 0 && corners[7] <= 1 && corners[1] < corners[7],
                     "inner outer edge retreats within left half only");
         }
+        int previousBlur = 0;
+        for (int i = 0; i <= 100; i++) {
+            int r = dev.tommy.foldshell.system.BlurProfile.depthRadius(i / 100f, false, 1, 1);
+            check(r >= previousBlur && r <= 180, "cover depth blur increases monotonically and stays bounded");
+            previousBlur = r;
+        }
+        check(dev.tommy.foldshell.system.BlurProfile.depthRadius(0, false, 1, 1) == 0,
+                "flat plane has no depth blur");
+        check(dev.tommy.foldshell.system.BlurProfile.depthRadius(.5f, true, 1, 1) == 160,
+                "inner uses its own blur range");
+        check(dev.tommy.foldshell.system.BlurProfile.depthRadius(.5f, false, 1, 0) == 0,
+                "release removes depth blur completely");
+        check(dev.tommy.foldshell.system.BlurProfile.depthRadius(.5f, false, 1, .5f) == 90,
+                "blur fades together with snapshot visibility");
         testProfile(); testGate(); testCapturePolicy();
         System.out.println("FoldMotionTest: PASS");
     }

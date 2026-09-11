@@ -20,6 +20,11 @@ Turn off **V2 · capture + black gradient** (`V2 · 캡처 + 블랙 그라디언
 app to return to V1. Mode changes restart the engine if enabled.
 
 - Overall effect intensity: **50–150%**.
+- V2 also applies system gradient blur above the perspective layer: strongest on the
+  cover’s right side and the inner left half’s outer edge. Radius follows the same
+  relative-depth estimate; it decreases as the inner plane opens and returns flat.
+  Lock-screen snapshot and mask paths both receive this blur. It dissolves with the
+  effect after the existing idle hold. The combined rendering needs physical tuning.
 - **1.5 seconds without detected movement → a smooth 420 ms release**, including the retained V2 snapshot.
 - Reported reversals release the current effect smoothly.
 - No effect on an off display or AOD. On the lock screen, V2 attempts a redacted snapshot; blocked or blank captures use a live perspective mask.
@@ -74,7 +79,7 @@ is interactive; long-term battery impact has not been measured.
 | Cover sensitivity adjustment in 0.3.1 | JVM tests passed; physical feedback pending |
 | App-owned wireless pairing, USB independence and reboot recovery | Not yet verified end to end |
 
-See [the 0.4.7 verification record](docs/V2_VALIDATION.md) for fixes and remaining
+See [the 0.4.8 verification record](docs/V2_VALIDATION.md) for fixes and remaining
 physical checks.
 
 Choose the **temporary USB trial** below for a ten-minute test, or the
@@ -135,7 +140,7 @@ For ongoing use and an intensity control UI, use the app setup below.
 [AGENTS.md](AGENTS.md) contains the agent workflow and user communication guidance
 (in Korean).
 
-## Single-app setup (0.4.7)
+## Single-app setup (0.4.8)
 
 **Shizuku is no longer required.** This APK includes local wireless ADB pairing,
 engine startup, and reconnection. One UI is preserved, and the V1 blur remains

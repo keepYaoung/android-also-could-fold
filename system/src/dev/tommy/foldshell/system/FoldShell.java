@@ -56,6 +56,7 @@ public final class FoldShell implements SensorEventListener, DisplayManager.Disp
     private long lastTick;
     private int lastRadius = -1, lastWidth, lastHeight, lastStack = -1;
     private String lastDisplay = "";
+    private String lastV2Identity = "";
     private boolean lastInner, lastStrongRight;
     private final Runnable frame = this::tick;
 
@@ -203,11 +204,19 @@ public final class FoldShell implements SensorEventListener, DisplayManager.Disp
                             : isInner ? motion.innerProgress() : motion.coverProgress(now);
                 } else coverRotation.end();
                 boolean locked = keyguard.isKeyguardLocked();
-                blackRenderer.render(String.valueOf(info.getClass().getField("uniqueId").get(info)) + "/" + motion.sequence() + "/rotation=" + value(info, "rotation") + "/locked=" + locked,
+                String v2Identity = String.valueOf(info.getClass().getField("uniqueId").get(info))
+                        + "/" + motion.sequence() + "/rotation=" + value(info, "rotation") + "/locked=" + locked;
+                if (!v2Identity.equals(lastV2Identity)) {
+                    // Remove the prior blur before a new panel/lock snapshot starts.
+                    destroyBlurSurface(); lastV2Identity = v2Identity;
+                }
+                blackRenderer.render(v2Identity,
                         info.getClass().getField("address").get(info), value(info, "logicalWidth"),
                         value(info, "logicalHeight"), value(info, "layerStack"), isInner, locked,
                         rendered * intensity, motion.visibility(now),
                         opening, renderedDepth, intensity);
+                render(info, BlurProfile.depthRadius(blackRenderer.depthProgress(), isInner,
+                        intensity, motion.visibility(now)));
             } else if (radius > 0) render(info, radius);
             else destroySurface();
             scheduled = true;
@@ -223,7 +232,7 @@ public final class FoldShell implements SensorEventListener, DisplayManager.Disp
             lastDisplay = identity;
         }
         boolean isInner = inner(info);
-        boolean strongRight = !isInner && motion.direction() == FoldMotion.Direction.OPENING;
+        boolean strongRight = !isInner && (blackRenderer != null || motion.direction() == FoldMotion.Direction.OPENING);
         if (isInner) width /= 2;
         if (surface == null) {
             SurfaceControl.Builder builder = new SurfaceControl.Builder().setName(NAME);
@@ -234,7 +243,7 @@ public final class FoldShell implements SensorEventListener, DisplayManager.Disp
         if (radius == lastRadius && width == lastWidth && height == lastHeight && stack == lastStack && isInner == lastInner && strongRight == lastStrongRight) return;
         try (SurfaceControl.Transaction transaction = new SurfaceControl.Transaction()) {
             layerStack.invoke(transaction, surface, stack);
-            transaction.setLayer(surface, 2000000);
+            transaction.setLayer(surface, blackRenderer == null ? 2000000 : 2000001);
             crop.invoke(transaction, surface, new Rect(0, 0, width, height));
             if (isInner || strongRight) {
                 // A global blur would flatten the spatial gradient, so clear it.
@@ -252,6 +261,10 @@ public final class FoldShell implements SensorEventListener, DisplayManager.Disp
     }
     private void destroySurface() {
         if (blackRenderer != null) blackRenderer.clear();
+        destroyBlurSurface(); lastV2Identity = "";
+        rendered = 0; lastTick = 0;
+    }
+    private void destroyBlurSurface() {
         if (surface != null) {
             try (SurfaceControl.Transaction transaction = new SurfaceControl.Transaction()) {
                 hide.invoke(transaction, surface);
@@ -260,7 +273,7 @@ public final class FoldShell implements SensorEventListener, DisplayManager.Disp
             } catch (Throwable error) { log("cleanup=" + error); }
             finally { surface.release(); surface = null; log("LAYER removed"); }
         }
-        rendered = 0; lastTick = 0; lastRadius = -1;
+        lastRadius = -1;
     }
     private void fail(Throwable error) {
         failed = true;

@@ -9,6 +9,15 @@ public final class BlurProfile {
         return phase * phase * (3 - 2 * phase);
     }
 
+    /** Same angle-response curve, driven by the V2 relative-depth estimate. */
+    public static int depthRadius(float progress, boolean inner, float intensity, float visibility) {
+        if (!Float.isFinite(progress) || !Float.isFinite(intensity) || !Float.isFinite(visibility)) return 0;
+        float phase = Math.max(0, Math.min(1, progress * 2));
+        float strength = phase * phase * (3 - 2 * phase);
+        return Math.round((inner ? 160 : 180) * strength
+                * Math.max(0, Math.min(1.5f, intensity)) * Math.max(0, Math.min(1, visibility)));
+    }
+
     public static float[][] regions(int paneWidth, int height, int radius) {
         return regions(paneWidth, height, radius, false);
     }

@@ -1,4 +1,4 @@
-# V2 verification record — 0.4.7
+# V2 verification record — 0.4.8
 
 ## Completed locally
 
@@ -189,3 +189,21 @@ For 0.4.7, JVM/DEX tests, APK assembly and Android lint passed. Installation
 succeeded on the connected Fold7 and the 600-second USB trial reached READY
 with gyro registered. Lock capture/fallback and inner perspective remain pending
 physical verification; startup alone is not recorded as visual success.
+
+## 0.4.8 perspective plus per-panel system gradient blur
+
+The requested earlier blur is now composed above V2 at a higher layer order, so it
+can blur the visible snapshot as well as live lock-mask content. It reuses the
+verified 32-region layout: cover strongest right, inner left half strongest at its
+outer edge. Radius uses the previous smooth angle curve driven by the rendered V2
+depth estimate (maximum 180px cover / 160px inner at 100% intensity). Release opacity
+fades both effects. V1 remains the independent legacy mode.
+
+A new motion/panel/rotation/lock identity removes the previous blur before starting
+a fresh snapshot. Stop, idle completion and screen-off clear both layers. JVM tests
+cover radius bounds, monotonic response, panel ranges and complete release. Physical
+confirmation of the combined blur and perspective is pending.
+
+For 0.4.8, JVM/DEX tests, APK assembly and Android lint passed. The APK installed
+successfully and a fresh 600-second USB trial reached READY with gyro registered.
+This confirms startup only; combined visual behavior awaits user feedback.
