@@ -1,4 +1,4 @@
-# V2 verification record — 0.4.9
+# V2 verification record — 0.4.10
 
 ## Completed locally
 
@@ -224,3 +224,26 @@ Physical alignment confirmation remains pending.
 For 0.4.9, JVM/DEX tests, APK assembly and Android lint passed. Installation
 succeeded and a new 600-second USB trial reached READY with gyro registered.
 Physical handoff/alignment confirmation remains pending.
+
+## 0.4.10 capture-transition recovery
+
+A 0.4.9 device trace showed a successful fully-open alignment, followed by a locked
+inner fallback, then an unlock capture throwing `V2 refuses secure capture content`.
+The engine logged ERROR and STOPPED about 54 seconds after startup: this was not the
+600-second expiry. Its process remained alive holding the lock because close removed
+the expiry callback without quitting the standalone Looper. It was explicitly stopped
+before replacement. The user also reported a black inner-left frame; its exact cause
+was not captured, but blank snapshots were previously checked only while locked.
+
+Capture-unavailable and platform permission/secure-content errors now fall back on
+both locked and unlocked panels. Blank/transparent snapshot checks apply on both
+panels, with bitmaps recycled before falling back. Secure/protected capture remains
+disabled. Unexpected unlocked API failures remain fatal, and a fatal standalone
+failure now quits its Looper after cleanup rather than retaining the process lock.
+Tests cover unlock secure-layer rejection, wrapped permission denial, unexpected API
+failure classification and visible/blank pixels. Device recurrence checks are pending.
+
+For 0.4.10, JVM/DEX tests, APK assembly and Android lint passed. The failed
+standalone process was explicitly stopped; the APK installed successfully and
+a fresh 600-second USB trial reached READY. Lock/unlock recurrence verification
+and the reported black-frame reproduction remain pending.

@@ -60,7 +60,7 @@ final class BlackGradientRenderer {
                         if (leftHalf != bitmap) bitmap.recycle();
                         bitmap = leftHalf;
                     }
-                    if (isLocked && isBlank(bitmap)) throw new IllegalStateException("Redacted lock snapshot is blank");
+                    if (isBlank(bitmap)) throw new CapturePolicy.Unavailable("Blank panel snapshot");
                     final Bitmap result = bitmap;
                     synchronized (pendingBitmaps) {
                         if (closed || generation != request) { result.recycle(); return; }
@@ -86,9 +86,9 @@ final class BlackGradientRenderer {
                     if (bitmap != null && !bitmap.isRecycled()) bitmap.recycle();
                     handler.post(() -> {
                         if (closed || generation != request) return;
-                        if (isLocked) {
+                        if (CapturePolicy.canFallback(error, isLocked)) {
                             captureUnavailable = true;
-                            System.out.println("V2 lock fallback=live-mask reason=" + error.getClass().getSimpleName());
+                            System.out.println("V2 capture fallback=live-mask locked=" + isLocked + " reason=" + error.getClass().getSimpleName());
                         } else failure.accept(error);
                     });
                 }
@@ -193,14 +193,14 @@ final class BlackGradientRenderer {
         for (int y = 0; y < bitmap.getHeight(); y += Math.max(1, bitmap.getHeight() / 32))
             for (int x = 0; x < bitmap.getWidth(); x += Math.max(1, bitmap.getWidth() / 32)) {
                 int pixel = bitmap.getPixel(x, y);
-                if (Color.red(pixel) > 8 || Color.green(pixel) > 8 || Color.blue(pixel) > 8) return false;
+                if (CapturePolicy.visiblePixel(pixel)) return false;
             }
         return true;
     }
     private static float clamp(float x) { return Math.max(0, Math.min(1, x)); }
     private static Bitmap capture(long physical, int width, int height) throws Exception {
         IBinder token = (IBinder) SurfaceControl.class.getMethod("getPhysicalDisplayToken", long.class).invoke(null, physical);
-        if (token == null) throw new IllegalStateException("V2 display token unavailable");
+        if (token == null) throw new CapturePolicy.Unavailable("V2 display token unavailable");
         String api;
         try { Class.forName("android.window.ScreenCaptureInternal$DisplayCaptureArgs"); api = "android.window.ScreenCaptureInternal"; }
         catch (ClassNotFoundException legacyApi) { api = "android.window.ScreenCapture"; }
@@ -213,14 +213,14 @@ final class BlackGradientRenderer {
         CapturePolicy.redact(builder, policies);
         Object args = builderClass.getMethod("build").invoke(builder);
         Object capture = Class.forName(api).getMethod("captureDisplay", argsClass).invoke(null, args);
-        if (capture == null) throw new IllegalStateException("V2 screen capture unavailable; select V1 blur");
+        if (capture == null) throw new CapturePolicy.Unavailable("V2 screen capture unavailable");
         HardwareBuffer buffer = (HardwareBuffer) capture.getClass().getMethod("getHardwareBuffer").invoke(capture);
         Bitmap hardware = null;
         try {
             if ((Boolean) capture.getClass().getMethod("containsSecureLayers").invoke(capture))
-                throw new IllegalStateException("V2 refuses secure capture content");
+                throw new CapturePolicy.Unavailable("V2 refuses secure capture content");
             hardware = (Bitmap) capture.getClass().getMethod("asBitmap").invoke(capture);
-            if (hardware == null) throw new IllegalStateException("V2 empty capture");
+            if (hardware == null) throw new CapturePolicy.Unavailable("V2 empty capture");
             Bitmap copy = hardware.copy(Bitmap.Config.ARGB_8888, false);
             if (copy == null) throw new IllegalStateException("V2 snapshot allocation failed");
             return copy;

@@ -357,6 +357,18 @@ public class FoldMotionTest {
         rotation.sample(1, 6_020_000_000L, 6020);
         check(rotation.begin(6020, true, false) && rotation.progress() == 0,
                 "panel handoff cannot integrate old rotation twice");
+        check(dev.tommy.foldshell.system.CapturePolicy.canFallback(
+                new dev.tommy.foldshell.system.CapturePolicy.Unavailable("secure"), false),
+                "secure layer during unlock must not kill the engine");
+        check(dev.tommy.foldshell.system.CapturePolicy.canFallback(
+                new java.lang.reflect.InvocationTargetException(new SecurityException()), false),
+                "wrapped platform capture denial is recoverable after unlock");
+        check(!dev.tommy.foldshell.system.CapturePolicy.canFallback(new NoSuchMethodException(), false),
+                "unknown capture API is not silently treated as transient screen state");
+        check(!dev.tommy.foldshell.system.CapturePolicy.visiblePixel(0xff000000)
+                && !dev.tommy.foldshell.system.CapturePolicy.visiblePixel(0x00ffffff)
+                && dev.tommy.foldshell.system.CapturePolicy.visiblePixel(0xff0000ff),
+                "blank/transparent snapshots fall back while visible colored pixels are accepted");
         testProfile(); testGate(); testCapturePolicy();
         System.out.println("FoldMotionTest: PASS");
     }

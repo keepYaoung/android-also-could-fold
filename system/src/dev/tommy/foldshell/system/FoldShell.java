@@ -52,7 +52,7 @@ public final class FoldShell implements SensorEventListener, DisplayManager.Disp
     private boolean closed;
     private float intensity = 1f;
     private String failureMessage;
-    private boolean failed;
+    private boolean failed, standalone;
     private float rendered;
     private long lastTick;
     private int lastRadius = -1, lastWidth, lastHeight, lastStack = -1;
@@ -95,6 +95,7 @@ public final class FoldShell implements SensorEventListener, DisplayManager.Disp
     private boolean allowed() { return power.isInteractive(); }
 
     private void start(long duration, boolean early) throws Exception {
+        standalone = duration > 0;
         Object info = displayInfo();
         log("display=" + value(info, "logicalWidth") + "x" + value(info, "logicalHeight")
                 + " inner=" + inner(info));
@@ -292,6 +293,9 @@ public final class FoldShell implements SensorEventListener, DisplayManager.Disp
         failureMessage = error.toString();
         log("ERROR " + error); error.printStackTrace(System.out);
         close();
+        // close() removes the expiry callback. A failed standalone loop must
+        // exit now rather than keep the shared process lock forever.
+        if (standalone) handler.getLooper().quitSafely();
     }
     public void close() {
         if (closed) return;
