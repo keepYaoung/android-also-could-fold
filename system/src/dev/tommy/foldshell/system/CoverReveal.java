@@ -13,5 +13,8 @@ public final class CoverReveal {
     public static float opacity(float progress) {
         return ease(progress / .2f) * (1 - ease((progress - .4f) / .6f));
     }
-    public static float snapshot(float progress) { return 1 - ease(progress); }
+    // Keep the captured plane visible through the first coarse 90-degree sample.
+    public static float snapshot(float progress) { return 1 - ease((progress - .45f) / .55f); }
+    /** Bounded visual estimate, not tracked world-space stabilization. */
+    public static float counterYaw(float progress) { return 24f * ease(progress); }
 }

@@ -1,4 +1,4 @@
-# V2 verification record — 0.4.1
+# V2 verification record — 0.4.3
 
 ## Completed locally
 
@@ -80,3 +80,21 @@ JVM profile/state tests and DEX build passed; APK assembly and Android lint pass
 The 0.4.2 APK installed successfully on the connected Fold7. A new 600-second
 USB trial reached READY with the V2 backend; physical confirmation of the revised
 timing remains pending. App-owned wireless operation was not exercised.
+
+## 0.4.3 cover visibility and estimated perspective
+
+The user reported that the 0.4.2 cover effect did not render as intended. Code review
+found that the first coarse 90-degree sample completed the reveal, while multiplying
+angle strength and reveal opacity weakened its entrance. The cover now uses a separate
+visibility/intensity envelope, maps 90 degrees to mid-progress and keeps the snapshot
+visible longer. The snapshot receives bounded inverse yaw (up to 24 visual degrees)
+around its center, suggesting a plane that stays facing forward. This is an estimated
+perspective effect, not measured world-space stabilization or viewer tracking.
+
+Regression tests cover the coarse 90-degree sample and bounded transform. Snapshot
+and layer-ready logs report only dimensions/panel, never captured content. Physical
+confirmation of visibility, correction direction and timing remains pending.
+
+The 0.4.3 JVM/DEX build, APK assembly and Android lint passed. APK installation
+succeeded on the connected Fold7. A 600-second USB V2 trial reached READY; this
+confirms engine startup only. Visual feedback is pending.

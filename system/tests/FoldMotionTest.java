@@ -263,6 +263,18 @@ public class FoldMotionTest {
                 lastExit = opacity;
             }
         }
+        FoldMotion cover = new FoldMotion(true);
+        cover.angle(0, false, 0);
+        cover.angle(90, false, 1000);
+        check(cover.coverProgress(1000) == .5f, "coarse 90-degree event must not finish cover reveal");
+        check(dev.tommy.foldshell.system.CoverReveal.snapshot(cover.coverProgress(1000)) > .9f,
+                "cover plane remains visible at first coarse opening sample");
+        check(dev.tommy.foldshell.system.CoverReveal.opacity(cover.coverProgress(1000)) > .8f,
+                "cover shadow remains visible at first coarse opening sample");
+        for (int i = 0; i <= 100; i++) {
+            float yaw = dev.tommy.foldshell.system.CoverReveal.counterYaw(i / 100f);
+            check(Float.isFinite(yaw) && yaw >= 0 && yaw <= 24, "estimated perspective correction is bounded");
+        }
         testProfile(); testGate(); testCapturePolicy();
         System.out.println("FoldMotionTest: PASS");
     }

@@ -25,6 +25,12 @@ app to return to V1. Mode changes restart the engine if enabled.
 - No effect on an off display or AOD. On the lock screen, V2 uses only a live black gradient and takes no snapshot.
 - Settings, pairing identity, foreground connection monitoring and a notification stop action are retained.
 
+Version 0.4.3 keeps the cover effect visible at the first coarse 90° sample and adds
+a bounded inverse-perspective transform to the snapshot, suggesting a screen that
+stays facing forward. This is an experimental visual estimate, not world-space
+stabilization: there is no viewer tracking or continuous measured hinge angle.
+Physical tuning remains pending.
+
 V2 snapshots are transient memory buffers, never files or uploads. Protected content
 is excluded from capture; excluded regions may appear blank. The snapshot freezes
 visible content briefly while touch still reaches the underlying app. V2 capture,
@@ -60,7 +66,7 @@ is interactive; long-term battery impact has not been measured.
 | Cover sensitivity adjustment in 0.3.1 | JVM tests passed; physical feedback pending |
 | App-owned wireless pairing, USB independence and reboot recovery | Not yet verified end to end |
 
-See [the 0.4.2 verification record](docs/V2_VALIDATION.md) for fixes and remaining
+See [the 0.4.3 verification record](docs/V2_VALIDATION.md) for fixes and remaining
 physical checks.
 
 Choose the **temporary USB trial** below for a ten-minute test, or the
@@ -121,7 +127,7 @@ For ongoing use and an intensity control UI, use the app setup below.
 [AGENTS.md](AGENTS.md) contains the agent workflow and user communication guidance
 (in Korean).
 
-## Single-app setup (0.4.2)
+## Single-app setup (0.4.3)
 
 **Shizuku is no longer required.** This APK includes local wireless ADB pairing,
 engine startup, and reconnection. One UI is preserved, and the V1 blur remains
