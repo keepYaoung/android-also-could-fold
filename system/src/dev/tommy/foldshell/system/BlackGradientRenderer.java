@@ -30,6 +30,7 @@ final class BlackGradientRenderer {
     private long progressTick;
     private int lastLeft = -1;
     private float lastProgress = -1;
+    private int diagnosticStep = -1;
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
 
     BlackGradientRenderer(Handler handler, Consumer<Throwable> failure) {
@@ -87,7 +88,7 @@ final class BlackGradientRenderer {
             SurfaceControl.Builder.class.getMethod("setSecure", boolean.class).invoke(builder, true);
             layer = builder.build();
             canvasSurface = new Surface(layer);
-            System.out.println("V2 layer ready panel=" + (inner ? "inner" : "cover"));
+            System.out.println("V2 layer ready panel=" + (inner ? "inner" : "cover") + " snapshotAllowed=" + snapshotAllowed);
         }
         long now = android.os.SystemClock.elapsedRealtime();
         float dt = progressTick == 0 ? 16 : Math.min(64, now - progressTick);
@@ -95,6 +96,14 @@ final class BlackGradientRenderer {
         // Release opacity must never rewind the spatial opening animation.
         if (!inner && opening)
             coverProgress += Math.max(0, targetProgress - coverProgress) * Math.min(1, dt / 140f);
+        if (!inner && opening) {
+            int step = (int) (coverProgress * 5);
+            if (step != diagnosticStep) {
+                diagnosticStep = step;
+                System.out.println("V2 cover progress=" + coverProgress + " scale="
+                        + CoverReveal.depthScale(coverProgress) + " snapshot=" + (snapshot != null));
+            }
+        }
         float reveal = !inner && opening ? CoverReveal.opacity(coverProgress) : 1;
         int left = !inner && opening ? Math.round(pane * CoverReveal.left(coverProgress)) : 0;
         // Cover reveal already has its own envelope: multiplying by angle strength
@@ -184,7 +193,7 @@ final class BlackGradientRenderer {
         }
         if (snapshot != null) { snapshot.recycle(); snapshot = null; }
         requested = false; identity = ""; lastAlpha = -1; lastVisibility = -1; lastLeft = -1;
-        coverProgress = 0; progressTick = 0; lastProgress = -1;
+        coverProgress = 0; progressTick = 0; lastProgress = -1; diagnosticStep = -1;
     }
     void close() { closed = true; clear(); captureThread.shutdownNow(); }
 }

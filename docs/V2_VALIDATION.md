@@ -113,3 +113,14 @@ Physical confirmation of retreat, timing and idle dissolve is pending.
 For 0.4.4, JVM/DEX tests, APK assembly and Android lint passed. Installation on the
 connected Fold7 succeeded and a fresh 600-second USB trial reached READY. This is
 startup verification; the revised depth effect still awaits physical confirmation.
+
+### 0.4.4 follow-up: retreat not observed
+
+The user reported no visible retreat. The trial logged a cover layer but no preceding
+snapshot-ready message. In the current renderer a cover layer without a completed
+snapshot uses the capture-disabled path; this is consistent with the keyguard gate
+at that moment, but the previous log did not record the gate directly. A later policy
+query showed the device unlocked and cannot establish its state during the fold.
+Added content-free diagnostics for snapshotAllowed, snapshot presence and scale.
+A fresh USB trial reached READY; an unlocked-cover repeat was requested. Do not mark
+the depth effect visually confirmed until that repeat is observed.
