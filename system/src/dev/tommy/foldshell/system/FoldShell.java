@@ -211,9 +211,10 @@ public final class FoldShell implements SensorEventListener, DisplayManager.Disp
                 }
                 if (!motion.releasing()) {
                     renderedDepth = gyroDriving
-                            ? isInner ? Math.max(0, Math.min(1, depthStart
-                                    + (opening ? -1 : 1) * coverRotation.progress()))
-                                    : coverRotation.progress()
+                            ? isInner ? opening
+                                    ? CoverReveal.openingDepth(depthStart, coverRotation.progress())
+                                    : CoverReveal.motionDepth(coverRotation.progress())
+                                    : CoverReveal.motionDepth(coverRotation.progress())
                             : isInner ? motion.innerProgress() : motion.coverProgress(now);
                 } else coverRotation.end();
                 if (isInner && opening && motion.fullyOpen()) {

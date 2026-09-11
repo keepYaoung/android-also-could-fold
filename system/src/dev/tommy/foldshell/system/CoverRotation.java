@@ -5,7 +5,7 @@ import java.util.ArrayDeque;
 /** Short-lived relative Y rotation; never starts a fold or claims a hinge angle. */
 public final class CoverRotation {
     private final ArrayDeque<double[]> recent = new ArrayDeque<>();
-    private long lastNs, lastReceipt = -1;
+    private long lastNs, lastReceipt = -1, reverseSince = -1;
     private float degrees, peak;
     private boolean active, advancing;
     private float direction = 1;
@@ -17,7 +17,7 @@ public final class CoverRotation {
         lastNs = sensorNs; lastReceipt = now;
         while (!recent.isEmpty() && now - recent.peekFirst()[0] > 500) recent.removeFirst();
         if (previous == 0 || sensorNs - previous > 150_000_000L) {
-            recent.clear(); return; // never integrate across suspended or missing samples
+            reverseSince = -1; recent.clear(); return; // never integrate across suspended or missing samples
         }
         float delta = Math.abs(yRadiansPerSecond) < .025f ? 0
                 : (float) (yRadiansPerSecond * (sensorNs - previous) / 1e9 * 180 / Math.PI);
@@ -26,6 +26,9 @@ public final class CoverRotation {
             advancing = direction * yRadiansPerSecond >= .08f;
             degrees = Math.max(0, Math.min(90, degrees + direction * delta));
             peak = Math.max(peak, degrees);
+            if (peak - degrees >= 1.5f && direction * yRadiansPerSecond < -.08f) {
+                if (reverseSince < 0) reverseSince = now;
+            } else reverseSince = -1;
         }
     }
     public boolean begin(long now) { return begin(now, true); }
@@ -39,7 +42,7 @@ public final class CoverRotation {
     }
     public float progress() { return peak / 90f; }
     public boolean advancing() { return active && advancing; }
-    public boolean reversed() { return active && peak - degrees >= 1.5f; }
-    public void end() { active = false; advancing = false; degrees = peak = 0; }
+    public boolean reversed() { return active && reverseSince >= 0 && lastReceipt - reverseSince >= 120; }
+    public void end() { active = false; advancing = false; reverseSince = -1; degrees = peak = 0; }
     public void reset() { end(); recent.clear(); lastNs = 0; lastReceipt = -1; }
 }

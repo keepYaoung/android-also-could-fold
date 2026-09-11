@@ -314,6 +314,14 @@ public class FoldMotionTest {
         check(sustained.releasing(), "actual 1.5s stop still starts dissolve");
         sustained.amount(6220);
         check(!sustained.active(), "stationary dissolve still completes");
+        check(dev.tommy.foldshell.system.CoverReveal.motionDepth(.08f) - .2f < .00001f && dev.tommy.foldshell.system.CoverReveal.motionDepth(.08f) > .19999f,
+                "small cover motion has a visible calibrated depth");
+        check(Math.abs(dev.tommy.foldshell.system.CoverReveal.openingDepth(.2f, .1f) - .18f) < .00001f,
+                "small inner motion does not consume the entire incoming plane");
+        check(dev.tommy.foldshell.system.CoverReveal.openingDepth(.2f, 1) == 0,
+                "full inner rotation finishes flat");
+        check(dev.tommy.foldshell.system.CoverReveal.snapshot(.7f) == 1,
+                "cover snapshot remains visible through substantial retreat");
         float held = rotation.progress();
         for (int i = 1; i <= 50; i++) rotation.sample(.001f,
                 2_020_000_000L + i * 20_000_000L, 2020 + i * 20);
@@ -321,7 +329,9 @@ public class FoldMotionTest {
         check(!rotation.advancing(), "stationary gyro noise cannot refresh idle hold");
         rotation.sample(-2, 3_040_000_000L, 3040);
         check(!rotation.advancing(), "reverse movement cannot prolong opening");
-        check(rotation.reversed(), "measured reverse rotation requests dissolve");
+        check(!rotation.reversed(), "one reverse sample cannot end a fold");
+        for (int i = 1; i <= 6; i++) rotation.sample(-2, 3_040_000_000L + i * 20_000_000L, 3040 + i * 20);
+        check(rotation.reversed(), "sustained reverse rotation requests dissolve");
         rotation.reset();
         rotation.sample(1, 4_000_000_000L, 4000);
         check(!rotation.begin(4500), "stale gyro must not drive a new fold");
@@ -332,7 +342,8 @@ public class FoldMotionTest {
                 5_000_000_000L + i * 20_000_000L, 5000 + i * 20);
         check(rotation.progress() > .3f, "negative Y rotation drives closing retreat");
         rotation.sample(2, 5_520_000_000L, 5520);
-        check(rotation.reversed(), "opening during closing requests release");
+        for (int i = 1; i <= 6; i++) rotation.sample(2, 5_520_000_000L + i * 20_000_000L, 5520 + i * 20);
+        check(rotation.reversed(), "sustained opening during closing requests release");
         for (int i = 0; i <= 100; i++) {
             dev.tommy.foldshell.system.CoverReveal.innerCorners(i / 100f, corners);
             check(corners[2] == 1 && corners[3] == 0 && corners[4] == 1 && corners[5] == 1,

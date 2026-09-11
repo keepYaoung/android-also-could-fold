@@ -352,3 +352,20 @@ Physical validation of this fix remains pending.
 JVM/DEX tests, APK assembly and Android lint passed for 0.4.16. Installation
 succeeded; the 600-second USB trial reached READY on the cover display with
 additional edge blur disabled. Physical confirmation remains pending.
+
+## 0.4.17 stronger travel and slower inner depth consumption
+
+User feedback: both panels barely change angle and finish too early. The 0.4.16
+trace included a gyro-reversal release before inner capture could draw, and another
+inner entry at depth 0.0774 (scale 0.952). Cover/inner-closing gyro depth now has
+2.5x gain. Inner opening reduces incoming depth proportionally across gyro progress,
+so a small incoming depth no longer disappears after equally small rotation.
+The cover snapshot fade starts at 80% visual progress instead of 45%. Reversal
+still requires 1.5 degrees but must continue for 120ms above the motion deadband;
+a single reverse sample no longer releases. Full-open alignment and the 1.5s idle
+hold/620ms dissolve are unchanged. These are visual estimates, not hinge calibration.
+Physical appearance remains pending; extra edge blur stays off in USB comparison.
+
+0.4.17 passed JVM/DEX tests, APK assembly and lint. APK installation succeeded
+and the 600-second USB trial reached READY with extra edge blur disabled.
+Physical visibility and timing feedback are pending.

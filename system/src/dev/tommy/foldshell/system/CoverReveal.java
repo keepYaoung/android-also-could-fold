@@ -14,7 +14,7 @@ public final class CoverReveal {
         return ease(progress / .2f) * (1 - ease((progress - .4f) / .6f));
     }
     // Keep the captured plane visible through the first coarse 90-degree sample.
-    public static float snapshot(float progress) { return 1 - ease((progress - .45f) / .55f); }
+    public static float snapshot(float progress) { return 1 - ease((progress - .8f) / .2f); }
     /** Normalized quadrilateral: left edge fixed, only the right edge recedes. */
     public static void corners(float progress, float[] out) {
         float scale = depthScale(progress);
@@ -32,6 +32,14 @@ public final class CoverReveal {
         out[2] = 1; out[3] = 0;
         out[4] = 1; out[5] = 1;
         out[6] = x; out[7] = 1 - inset;
+    }
+    /** Amplify measured motion without advancing on elapsed time. */
+    public static float motionDepth(float progress) {
+        return Math.max(0, Math.min(1, progress * 2.5f));
+    }
+    public static float openingDepth(float start, float progress) {
+        // Consume a fraction of the incoming depth, not an absolute depth unit.
+        return start * (1 - Math.max(0, Math.min(1, progress)));
     }
     public static float innerStart(boolean fullyOpen, float coarseDepth, float carriedDepth) {
         // Preserve the incoming plane even if the endpoint precedes panel/capture readiness.

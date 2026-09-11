@@ -289,3 +289,5 @@ Bundled dependencies retain their own licenses; see [THIRD_PARTY_NOTICES.md](THI
 Cover-to-inner opening retains the incoming cover depth until the first drawable inner frame, including when the fully-open signal arrives during capture. It then aligns to the right pane within 140ms if already fully open.
 
 During an already confirmed fold, forward gyro movement also refreshes the 1.5-second stationary timer so slow unfolding can continue across sparse hinge events. Gyro alone does not start an effect.
+
+Motion tuning: cover and inner closing depth use 2.5× gyro response; inner opening consumes a fraction of its incoming depth. The cover snapshot stays opaque through 80% visual progress. Gyro reversal requires 120ms of sustained reverse movement beyond 1.5°. These are visual calibration values, not measured hinge angles.
