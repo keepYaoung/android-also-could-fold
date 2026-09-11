@@ -62,6 +62,12 @@ Wi-Fi가 없거나 Shizuku 권한이 해제되었거나 앱이 강제 중지된 
 보장하지 않습니다. 앱과 Shizuku를 다시 열어 상태를 확인하세요. 기기 재부팅에 걸친
 완전 자동 복구는 별도 실기 검증이 필요합니다.
 
+`CERTIFICATE_UNKNOWN` 오류가 나면 먼저 Shizuku에서 **페어링**을 시작하고,
+설정의 **페어링 코드로 기기 페어링** 창을 연 채 Shizuku 알림에 6자리 코드를
+입력하세요. `Searching for pairing`은 코드 창을 찾는 대기 상태입니다.
+페어링 성공 후 **시작**을 누릅니다. PC를 ADB에 연결한 것만으로 Shizuku의
+무선 인증 키까지 등록되지는 않습니다.
+
 참고: [Shizuku 13.6 릴리스](https://github.com/RikkaApps/Shizuku/releases/tag/v13.6.0),
 [공식 부팅 처리 코드](https://github.com/RikkaApps/Shizuku/blob/v13.6.0/manager/src/main/java/moe/shizuku/manager/receiver/BootCompleteReceiver.kt).
 

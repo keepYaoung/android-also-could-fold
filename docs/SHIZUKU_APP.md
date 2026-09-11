@@ -23,3 +23,15 @@ This is a user-space daemon, not a firmware patch or unconditional boot service.
 
 The original finite ADB runner remains available for diagnostics. Its duration
 limits do not apply to the Shizuku-owned engine. See README for setup and limits.
+
+
+## Validation on SM-F966N
+
+- Debug APK build, Android lint (no errors), and fold state/gradient JVM tests pass.
+- User confirmed original fold visuals work through the app, including lock screen.
+- Killing the UI/guardian process leaves the daemon alive; Android restarts the guardian.
+- Killing the daemon itself is recovered by the enabled guardian with a new daemon PID.
+- A forced Shizuku restart exposed orphaned old daemons in the first revision.
+  The service now links to the Shizuku server Binder and exits on its death, while
+  deliberately surviving death of the UI process. A subsequent forced server restart removed the old daemon and restored exactly one new engine.
+- Reboot auto-start requires Shizuku wireless pairing; USB startup alone is insufficient.

@@ -673,3 +673,8 @@ guardian performs bounded recovery. Legacy capture sources moved outside the bui
 MIT license and installation/limitations README added. User confirmed the new app
 preserves the effect on the actual device. Killing the app process left daemon PID
 10553 running; the foreground guardian returned as a new app process.
+
+Forced Shizuku-server restart now verified: old engine PID 12033 exited on server
+Binder death; exactly one replacement engine (23715) started under the new server.
+No second persistent engine remained. Android builds, lint (no errors), JVM tests,
+and GitHub build/test steps passed. Wireless pairing troubleshooting added to README.
