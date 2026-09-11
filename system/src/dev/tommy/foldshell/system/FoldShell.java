@@ -46,7 +46,8 @@ public final class FoldShell implements SensorEventListener, DisplayManager.Disp
     private final CoverRotation coverRotation = new CoverRotation();
     private long rotationSequence = -1;
     private boolean gyroDriving, rotationInner;
-    private float depthStart, renderedDepth;
+    private float depthStart, renderedDepth, handoffDepth;
+    private long handoffSequence = -1, handoffAt;
     private boolean scheduled;
     private boolean closed;
     private float intensity = 1f;
@@ -189,9 +190,13 @@ public final class FoldShell implements SensorEventListener, DisplayManager.Disp
                 boolean isInner = inner(info);
                 boolean opening = motion.direction() == FoldMotion.Direction.OPENING;
                 if (rotationSequence != motion.sequence() || rotationInner != isInner) {
+                    boolean carry = isInner && opening && handoffSequence == motion.sequence()
+                            && now - handoffAt <= 1500;
                     rotationSequence = motion.sequence(); rotationInner = isInner;
-                    gyroDriving = coverRotation.begin(now, opening);
-                    depthStart = isInner && opening ? Math.max(.08f, motion.innerProgress()) : 0;
+                    // Carry the rendered plane, but do not count pre-handoff gyro history twice.
+                    gyroDriving = coverRotation.begin(now, opening, !carry);
+                    depthStart = isInner && opening ? CoverReveal.innerStart(motion.fullyOpen(),
+                            motion.innerProgress(), carry ? handoffDepth : Float.NaN) : 0;
                     renderedDepth = depthStart;
                     log("V2_PROGRESS panel=" + (isInner ? "inner" : "cover") + " source="
                             + (gyroDriving ? "relative-gyro" : "coarse-hinge"));
@@ -203,6 +208,10 @@ public final class FoldShell implements SensorEventListener, DisplayManager.Disp
                                     : coverRotation.progress()
                             : isInner ? motion.innerProgress() : motion.coverProgress(now);
                 } else coverRotation.end();
+                if (isInner && opening && motion.fullyOpen()) {
+                    if (renderedDepth > 0) log("V2_ALIGN fully-open target=0");
+                    renderedDepth = 0; coverRotation.end(); gyroDriving = false;
+                }
                 boolean locked = keyguard.isKeyguardLocked();
                 String v2Identity = String.valueOf(info.getClass().getField("uniqueId").get(info))
                         + "/" + motion.sequence() + "/rotation=" + value(info, "rotation") + "/locked=" + locked;
@@ -215,6 +224,9 @@ public final class FoldShell implements SensorEventListener, DisplayManager.Disp
                         value(info, "logicalHeight"), value(info, "layerStack"), isInner, locked,
                         rendered * intensity, motion.visibility(now),
                         opening, renderedDepth, intensity);
+                if (!isInner && opening) {
+                    handoffDepth = blackRenderer.depthProgress(); handoffSequence = motion.sequence(); handoffAt = now;
+                }
                 render(info, BlurProfile.depthRadius(blackRenderer.depthProgress(), isInner,
                         intensity, motion.visibility(now)));
             } else if (radius > 0) render(info, radius);

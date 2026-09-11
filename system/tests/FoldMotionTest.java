@@ -336,6 +336,27 @@ public class FoldMotionTest {
                 "release removes depth blur completely");
         check(dev.tommy.foldshell.system.BlurProfile.depthRadius(.5f, false, 1, .5f) == 90,
                 "blur fades together with snapshot visibility");
+        check(dev.tommy.foldshell.system.CoverReveal.innerStart(false, .5f, .12f) == .12f,
+                "inner handoff preserves the cover plane instead of resetting to coarse depth");
+        check(dev.tommy.foldshell.system.CoverReveal.innerStart(true, .5f, .12f) == 0,
+                "fully open endpoint overrides residual gyro depth");
+        check(dev.tommy.foldshell.system.CoverReveal.innerStart(false, .3f, Float.NaN) == .3f,
+                "standalone inner start retains coarse fallback");
+        float settling = .5f;
+        for (int ms = 0; ms <= 200; ms++) {
+            float depth = dev.tommy.foldshell.system.CoverReveal.settleDepth(.5f, ms);
+            check(depth >= 0 && depth <= settling, "open endpoint settles without overshoot");
+            settling = depth;
+        }
+        check(settling == 0, "fully open plane reaches exact zero depth");
+        dev.tommy.foldshell.system.CoverReveal.innerCorners(settling, corners);
+        check(corners[0] == 0 && corners[1] == 0 && corners[2] == 1 && corners[3] == 0
+                && corners[4] == 1 && corners[5] == 1 && corners[6] == 0 && corners[7] == 1,
+                "fully open left pane matches the right pane without perspective");
+        rotation.reset(); rotation.sample(1, 6_000_000_000L, 6000);
+        rotation.sample(1, 6_020_000_000L, 6020);
+        check(rotation.begin(6020, true, false) && rotation.progress() == 0,
+                "panel handoff cannot integrate old rotation twice");
         testProfile(); testGate(); testCapturePolicy();
         System.out.println("FoldMotionTest: PASS");
     }

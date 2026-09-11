@@ -20,6 +20,9 @@ Turn off **V2 · capture + black gradient** (`V2 · 캡처 + 블랙 그라디언
 app to return to V1. Mode changes restart the engine if enabled.
 
 - Overall effect intensity: **50–150%**.
+- Cover-to-inner handoff carries the recent rendered depth instead of resetting it.
+  The fully open hinge signal settles the inner left plane to exactly flat within
+  140 ms, removing residual perspective and its depth blur (0.4.9).
 - V2 also applies system gradient blur above the perspective layer: strongest on the
   cover’s right side and the inner left half’s outer edge. Radius follows the same
   relative-depth estimate; it decreases as the inner plane opens and returns flat.
@@ -79,7 +82,7 @@ is interactive; long-term battery impact has not been measured.
 | Cover sensitivity adjustment in 0.3.1 | JVM tests passed; physical feedback pending |
 | App-owned wireless pairing, USB independence and reboot recovery | Not yet verified end to end |
 
-See [the 0.4.8 verification record](docs/V2_VALIDATION.md) for fixes and remaining
+See [the 0.4.9 verification record](docs/V2_VALIDATION.md) for fixes and remaining
 physical checks.
 
 Choose the **temporary USB trial** below for a ten-minute test, or the
@@ -140,7 +143,7 @@ For ongoing use and an intensity control UI, use the app setup below.
 [AGENTS.md](AGENTS.md) contains the agent workflow and user communication guidance
 (in Korean).
 
-## Single-app setup (0.4.8)
+## Single-app setup (0.4.9)
 
 **Shizuku is no longer required.** This APK includes local wireless ADB pairing,
 engine startup, and reconnection. One UI is preserved, and the V1 blur remains

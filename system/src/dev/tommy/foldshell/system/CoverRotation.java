@@ -27,10 +27,11 @@ public final class CoverRotation {
         }
     }
     public boolean begin(long now) { return begin(now, true); }
-    public boolean begin(long now, boolean opening) {
+    public boolean begin(long now, boolean opening) { return begin(now, opening, true); }
+    public boolean begin(long now, boolean opening, boolean includeHistory) {
         end(); direction = opening ? 1 : -1;
         if (lastReceipt < 0 || now - lastReceipt > 250) return false;
-        for (double[] row : recent) if (now - row[0] <= 500) degrees += direction * (float) row[1];
+        for (double[] row : recent) if (includeHistory && now - row[0] <= 500) degrees += direction * (float) row[1];
         degrees = Math.max(0, Math.min(90, degrees)); peak = degrees;
         active = true; return true;
     }

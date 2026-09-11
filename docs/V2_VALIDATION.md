@@ -1,4 +1,4 @@
-# V2 verification record — 0.4.8
+# V2 verification record — 0.4.9
 
 ## Completed locally
 
@@ -207,3 +207,20 @@ confirmation of the combined blur and perspective is pending.
 For 0.4.8, JVM/DEX tests, APK assembly and Android lint passed. The APK installed
 successfully and a fresh 600-second USB trial reached READY with gyro registered.
 This confirms startup only; combined visual behavior awaits user feedback.
+
+## 0.4.9 cover-to-inner plane alignment
+
+The user reported that the inner left plane did not align with the right near full
+opening. Inner initialization previously imposed a minimum depth, and gyro residuals
+were not overridden by the public fully-open endpoint. The new path carries the
+recent cover depth across the same motion sequence (up to 1.5s), excludes old gyro
+history on that handoff, and treats a >=179-degree public reading as zero depth.
+The renderer reaches exact zero in 140ms, restoring the identity quadrilateral and
+zero depth blur. This does not improve continuous hinge-angle access or predict the
+endpoint before the sensor reports it. Tests cover carried depth, endpoint priority,
+finite settling, identity geometry and avoiding double integration at handoff.
+Physical alignment confirmation remains pending.
+
+For 0.4.9, JVM/DEX tests, APK assembly and Android lint passed. Installation
+succeeded and a new 600-second USB trial reached READY with gyro registered.
+Physical handoff/alignment confirmation remains pending.

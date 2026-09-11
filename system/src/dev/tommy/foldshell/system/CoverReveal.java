@@ -33,6 +33,14 @@ public final class CoverReveal {
         out[4] = 1; out[5] = 1;
         out[6] = x; out[7] = 1 - inset;
     }
+    public static float innerStart(boolean fullyOpen, float coarseDepth, float carriedDepth) {
+        if (fullyOpen) return 0;
+        return Math.max(0, Math.min(1, Float.isFinite(carriedDepth) ? carriedDepth : coarseDepth));
+    }
+    /** Reach the exact shared plane promptly after the authoritative open endpoint. */
+    public static float settleDepth(float from, long elapsedMs) {
+        return from * (1 - ease(elapsedMs / 140f));
+    }
     /** Perspective size for a front-facing plane receding by 0..0.65 camera distances. */
     public static float depthScale(float progress) {
         float depth = .65f * Math.max(0, Math.min(1, progress));

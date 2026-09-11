@@ -27,7 +27,8 @@ final class BlackGradientRenderer {
     private int width, height, stack, lastAlpha = -1, lastVisibility = -1;
     private boolean inner, requested, locked, captureUnavailable;
     private float coverProgress;
-    private long progressTick;
+    private long progressTick, flattenStart = -1;
+    private float flattenFrom;
     private int lastLeft = -1;
     private float lastProgress = -1;
     private int diagnosticStep = -1;
@@ -108,7 +109,13 @@ final class BlackGradientRenderer {
         float dt = progressTick == 0 ? 16 : Math.min(64, now - progressTick);
         if (progressTick == 0 && inner && opening) coverProgress = targetProgress;
         progressTick = now;
-        coverProgress += (targetProgress - coverProgress) * Math.min(1, dt / 45f);
+        if (inner && opening && targetProgress == 0 && coverProgress > 0) {
+            if (flattenStart < 0) { flattenStart = now; flattenFrom = coverProgress; }
+            coverProgress = CoverReveal.settleDepth(flattenFrom, now - flattenStart);
+        } else {
+            flattenStart = -1;
+            coverProgress += (targetProgress - coverProgress) * Math.min(1, dt / 45f);
+        }
         {
             int step = (int) (coverProgress * 5);
             if (step != diagnosticStep) {
@@ -239,7 +246,7 @@ final class BlackGradientRenderer {
         }
         if (snapshot != null) { snapshot.recycle(); snapshot = null; }
         requested = false; captureUnavailable = false; identity = ""; lastAlpha = -1; lastVisibility = -1; lastLeft = -1;
-        coverProgress = 0; progressTick = 0; lastProgress = -1; diagnosticStep = -1;
+        coverProgress = 0; progressTick = 0; flattenStart = -1; lastProgress = -1; diagnosticStep = -1;
     }
     void close() { closed = true; clear(); captureThread.shutdownNow(); }
 }
