@@ -6,6 +6,7 @@ public final class FoldMotion {
     private float previous = Float.NaN, angle;
     private long started, lastMotion, resolving = -1, nextHint;
     private long fadeStart = -1, movementMs;
+    private long closingHintAt = -1;
     private float fadeFrom;
     private Direction direction;
     private boolean inner, provisional;
@@ -21,6 +22,7 @@ public final class FoldMotion {
         inner = isInner;
         if (Float.isNaN(delta)) { nextHint = now + 800; return; }
         if (Math.abs(delta) < .15f) return;
+        closingHintAt = -1;
         Direction nextDirection = delta > 0 ? Direction.OPENING : Direction.CLOSING;
         // Leaving a completed endpoint is a new fold, even if the previous
         // panel's release never ticked while its display was off.
@@ -54,14 +56,26 @@ public final class FoldMotion {
     }
 
     public boolean hint(boolean isInner, long now) {
-        if (Float.isNaN(previous)) return false;
+        if (Float.isNaN(previous)) { closingHintAt = -1; return false; }
         Direction candidate;
         if (previous >= 179) candidate = Direction.CLOSING;
         else if (previous <= 1) candidate = Direction.OPENING;
-        else return false;
-        if (now < nextHint) return false;
-        if (direction != null && direction != candidate && !provisional) cancel();
-        if (direction != null) return false;
+        else { closingHintAt = -1; return false; }
+        if (now < nextHint || (direction != null && (direction == candidate || provisional))) {
+            closingHintAt = -1;
+            return false;
+        }
+        // On the open inner panel, a single diagnostic burst can be handling
+        // noise. Require another sustained burst; cover opening stays immediate.
+        if (isInner && candidate == Direction.CLOSING) {
+            if (closingHintAt < 0 || now - closingHintAt > 700) {
+                closingHintAt = now;
+                return false;
+            }
+            if (now - closingHintAt < 250) return false;
+        }
+        closingHintAt = -1;
+        if (direction != null) cancel();
         direction = candidate;
         inner = isInner;
         started = lastMotion = now;
@@ -74,6 +88,7 @@ public final class FoldMotion {
 
     public void display(boolean isInner, long now) {
         inner = isInner;
+        if (!isInner) closingHintAt = -1;
         if (direction == null || provisional || fadeStart >= 0) return;
         if (resolving < 0 && ((direction == Direction.CLOSING && !inner)
                 || (direction == Direction.OPENING && inner && angle >= 179))) resolving = now;
@@ -124,7 +139,7 @@ public final class FoldMotion {
     public boolean releasing() { return fadeStart >= 0; }
     public Direction direction() { return direction; }
     public void cancel() {
-        direction = null; resolving = -1; fadeStart = -1;
+        direction = null; resolving = -1; fadeStart = -1; closingHintAt = -1;
         provisional = false; lastOutput = 0; movementMs = 0;
     }
     public void baseline(float value) {

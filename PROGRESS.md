@@ -678,3 +678,13 @@ Forced Shizuku-server restart now verified: old engine PID 12033 exited on serve
 Binder death; exactly one replacement engine (23715) started under the new server.
 No second persistent engine remained. Android builds, lint (no errors), JVM tests,
 and GitHub build/test steps passed. Wireless pairing troubleshooting added to README.
+
+
+0.2.1: user reported over-sensitive closing on the inner panel. Added an inner-only
+confirmation to early hints: two accepted motion bursts 250–700 ms apart are
+required. A lone burst stays invisible; expired/duplicate hints do not confirm.
+Public hinge changes bypass the extra wait; cover opening keeps its previous
+single-burst behavior. This adds about one 500 ms burst interval to inferred inner
+closing and does not provide true direction discrimination. Regression tests pass
+for noise, sustained motion, baseline resets, direct angle and unchanged cover onset.
+Device sensitivity improvement remains subject to physical user feedback.

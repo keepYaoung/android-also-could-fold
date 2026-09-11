@@ -127,6 +127,24 @@ public class FoldMotionTest {
         progressing.amount(3500);
         check(progressing.releasing() && progressing.amount(3920) == 0,
                 "stronger opening still releases after 1.5 second hold");
+        FoldMotion guarded = new FoldMotion();
+        guarded.angle(180, true, 0);
+        check(!guarded.hint(true, 1000) && !guarded.active(), "one inner burst must not show blur");
+        check(!guarded.hint(true, 1100), "duplicate callbacks cannot confirm closing");
+        check(!guarded.hint(true, 1800), "isolated bursts cannot accumulate across a gap");
+        check(guarded.hint(true, 2300), "sustained inner closing confirms on the next burst");
+        check(guarded.direction() == FoldMotion.Direction.CLOSING && guarded.amount(2520) > 0,
+                "confirmed inner motion still produces blur");
+        guarded.reset(); guarded.angle(180, true, 3000);
+        guarded.hint(true, 4000);
+        guarded.angle(90, true, 4100);
+        check(guarded.active() && guarded.amount(4100) > 0,
+                "public angle starts immediately without waiting for another hint");
+        guarded.reset(); guarded.angle(180, true, 5000); guarded.hint(true, 6000);
+        guarded.baseline(180);
+        check(!guarded.hint(true, 6500), "baseline clears pending noise confirmation");
+        guarded.reset(); guarded.angle(0, false, 7000);
+        check(guarded.hint(false, 8000), "cover opening still needs only one accepted burst");
         testProfile(); testGate();
         System.out.println("FoldMotionTest: PASS");
     }
