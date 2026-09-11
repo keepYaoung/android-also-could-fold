@@ -31,6 +31,8 @@ final class BlackGradientRenderer {
     private int lastLeft = -1;
     private float lastProgress = -1;
     private int diagnosticStep = -1;
+    private final Matrix perspective = new Matrix();
+    private final float[] sourceCorners = new float[8], targetCorners = new float[8];
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
 
     BlackGradientRenderer(Handler handler, Consumer<Throwable> failure) {
@@ -110,7 +112,7 @@ final class BlackGradientRenderer {
         // again made the entrance nearly invisible before the coarse 90° event.
         int alpha = Math.round(255 * clamp(.94f * (!inner && opening
                 ? visibility * intensity : amount) * reveal));
-        int bitmapAlpha = Math.round(255 * clamp(visibility) * (!inner && opening ? CoverReveal.snapshot(coverProgress) : 1));
+        int bitmapAlpha = Math.round(255 * clamp(visibility));
         if (alpha == lastAlpha && bitmapAlpha == lastVisibility && left == lastLeft && coverProgress == lastProgress) return;
         Canvas canvas = canvasSurface.lockCanvas(null);
         try {
@@ -124,8 +126,16 @@ final class BlackGradientRenderer {
                     paint.setAlpha(255);
                     if (opening) {
                         canvas.drawColor(Color.BLACK);
-                        float scale = CoverReveal.depthScale(coverProgress);
-                        canvas.scale(scale, scale, pane / 2f, height / 2f);
+                        CoverReveal.corners(0, sourceCorners);
+                        CoverReveal.corners(coverProgress, targetCorners);
+                        for (int i = 0; i < 8; i += 2) {
+                            sourceCorners[i] *= pane; sourceCorners[i + 1] *= height;
+                            targetCorners[i] *= pane; targetCorners[i + 1] *= height;
+                        }
+                        if (!perspective.setPolyToPoly(sourceCorners, 0, targetCorners, 0, 4))
+                            throw new IllegalStateException("V2 invalid cover perspective");
+                        canvas.concat(perspective);
+                        paint.setAlpha(Math.round(255 * CoverReveal.snapshot(coverProgress)));
                     }
                     canvas.drawBitmap(snapshot, null, new Rect(0, 0, pane, height), paint);
                 } finally { canvas.restoreToCount(saved); }

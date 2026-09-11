@@ -272,10 +272,17 @@ public class FoldMotionTest {
         check(dev.tommy.foldshell.system.CoverReveal.opacity(cover.coverProgress(1000)) > .8f,
                 "cover shadow remains visible at first coarse opening sample");
         float previousScale = 1;
+        float[] corners = new float[8];
         for (int i = 0; i <= 100; i++) {
             float scale = dev.tommy.foldshell.system.CoverReveal.depthScale(i / 100f);
             check(Float.isFinite(scale) && scale > .6f && scale <= previousScale,
                     "opening moves the plane farther away without enlargement or inversion");
+            dev.tommy.foldshell.system.CoverReveal.corners(i / 100f, corners);
+            check(corners[0] == 0 && corners[1] == 0 && corners[6] == 0 && corners[7] == 1,
+                    "left edge stays pinned throughout retreat");
+            check(corners[2] == corners[4] && corners[3] >= 0 && corners[5] <= 1
+                    && corners[3] < corners[5] && corners[2] > 0,
+                    "right edge retreats without folding or reversing the quad");
             previousScale = scale;
         }
         check(dev.tommy.foldshell.system.CoverReveal.depthScale(0) == 1,

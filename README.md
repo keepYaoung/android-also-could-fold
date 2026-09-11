@@ -25,10 +25,10 @@ app to return to V1. Mode changes restart the engine if enabled.
 - No effect on an off display or AOD. On the lock screen, V2 uses only a live black gradient and takes no snapshot.
 - Settings, pairing identity, foreground connection monitoring and a notification stop action are retained.
 
-Version 0.4.4 keeps the cover effect visible at the first coarse 90° sample. The
-snapshot stays front-facing and shrinks as estimated opening progress increases,
-simulating retreat into depth. A black backing prevents the full-size live screen
-from appearing around it; both dissolve together. This is an experimental visual estimate, not world-space
+Version 0.4.5 pins the unlocked cover snapshot’s left edge and makes only its right
+edge retreat, forming a perspective trapezoid over black. The black backing remains
+until release so the live screen does not show around the image. On the lock screen,
+there is no snapshot and therefore no image retreat—only the live gradient. This is an experimental visual estimate, not world-space
 stabilization: there is no viewer tracking or continuous measured hinge angle.
 Physical tuning remains pending.
 
@@ -67,7 +67,7 @@ is interactive; long-term battery impact has not been measured.
 | Cover sensitivity adjustment in 0.3.1 | JVM tests passed; physical feedback pending |
 | App-owned wireless pairing, USB independence and reboot recovery | Not yet verified end to end |
 
-See [the 0.4.4 verification record](docs/V2_VALIDATION.md) for fixes and remaining
+See [the 0.4.5 verification record](docs/V2_VALIDATION.md) for fixes and remaining
 physical checks.
 
 Choose the **temporary USB trial** below for a ten-minute test, or the
@@ -128,7 +128,7 @@ For ongoing use and an intensity control UI, use the app setup below.
 [AGENTS.md](AGENTS.md) contains the agent workflow and user communication guidance
 (in Korean).
 
-## Single-app setup (0.4.4)
+## Single-app setup (0.4.5)
 
 **Shizuku is no longer required.** This APK includes local wireless ADB pairing,
 engine startup, and reconnection. One UI is preserved, and the V1 blur remains

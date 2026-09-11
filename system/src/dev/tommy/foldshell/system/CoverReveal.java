@@ -15,6 +15,15 @@ public final class CoverReveal {
     }
     // Keep the captured plane visible through the first coarse 90-degree sample.
     public static float snapshot(float progress) { return 1 - ease((progress - .45f) / .55f); }
+    /** Normalized quadrilateral: left edge fixed, only the right edge recedes. */
+    public static void corners(float progress, float[] out) {
+        float scale = depthScale(progress);
+        float inset = (1 - scale) / 2f;
+        out[0] = 0; out[1] = 0;
+        out[2] = scale; out[3] = inset;
+        out[4] = scale; out[5] = 1 - inset;
+        out[6] = 0; out[7] = 1;
+    }
     /** Perspective size for a front-facing plane receding by 0..0.65 camera distances. */
     public static float depthScale(float progress) {
         float depth = .65f * Math.max(0, Math.min(1, progress));

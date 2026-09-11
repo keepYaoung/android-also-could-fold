@@ -1,4 +1,4 @@
-# V2 verification record — 0.4.4
+# V2 verification record — 0.4.5
 
 ## Completed locally
 
@@ -124,3 +124,24 @@ query showed the device unlocked and cannot establish its state during the fold.
 Added content-free diagnostics for snapshotAllowed, snapshot presence and scale.
 A fresh USB trial reached READY; an unlocked-cover repeat was requested. Do not mark
 the depth effect visually confirmed until that repeat is observed.
+
+## 0.4.5 left-anchored cover perspective
+
+Two diagnostic opening cycles explicitly reported snapshotAllowed=false and
+snapshot=false. The keyguard-gated path therefore produced no image retreat; this
+was not evidence that the bitmap transform ran and failed. The user clarified the
+geometry: pin the left edge, recede/shrink only the right edge, fill behind with black.
+A four-point perspective transform now replaces uniform centered scaling. The black
+backing remains until release rather than fading with opening progress. JVM checks
+cover fixed left corners, bounded right-edge motion and a non-inverted quadrilateral.
+Unlocked-cover visual confirmation is still required. Capture on lock remains disabled.
+
+Read-only sensor inventory confirmed accelerometer, gyroscope, gravity, linear
+acceleration, rotation vector and game rotation vector entries. Existing early
+motion detection uses Folding Angle timestamps. These auxiliary sensors are not yet
+fused into an angle estimator; presence does not establish independent measurements
+from both panels or the ability to separate whole-device rotation from hinge motion.
+
+For 0.4.5, JVM/DEX tests, APK assembly and Android lint passed. Installation
+succeeded on the connected Fold7. A new 600-second USB trial reached READY;
+unlocked-cover perspective rendering has not yet been physically confirmed.
