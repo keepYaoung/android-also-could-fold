@@ -54,13 +54,17 @@ is interactive; long-term battery impact has not been measured.
 | Blur on cover, inner display and awake lock screen | Physically confirmed with the earlier engine setup |
 | Build, lint and JVM motion regressions | Passed, including V2 angle response and release |
 | V2 snapshot rendering, lock-screen behavior and panel handoff | Implemented; not yet verified on-device |
+| Samsung capture API compatibility | Matched to previously pulled framework; runtime permission pending |
 | Encrypted identity storage, reload and tamper rejection | Passed on Fold7 |
 | Dedicated pairing notification in 0.3.2 | Registration confirmed on-device; completed code entry not yet confirmed |
 | Cover sensitivity adjustment in 0.3.1 | JVM tests passed; physical feedback pending |
 | App-owned wireless pairing, USB independence and reboot recovery | Not yet verified end to end |
 
+See [the 0.4.1 verification record](docs/V2_VALIDATION.md) for fixes and remaining
+physical checks.
+
 Choose the **temporary USB trial** below for a ten-minute test, or the
-[single-app setup](#single-app-setup-040) for saved settings and wireless connection
+[single-app setup](#single-app-setup-041) for saved settings and wireless connection
 attempts. Neither mode requires root.
 
 ## Try it without installing an app
@@ -117,7 +121,7 @@ For ongoing use and an intensity control UI, use the app setup below.
 [AGENTS.md](AGENTS.md) contains the agent workflow and user communication guidance
 (in Korean).
 
-## Single-app setup (0.4.0)
+## Single-app setup (0.4.1)
 
 **Shizuku is no longer required.** This APK includes local wireless ADB pairing,
 engine startup, and reconnection. One UI is preserved, and the V1 blur remains

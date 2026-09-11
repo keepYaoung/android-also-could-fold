@@ -42,7 +42,41 @@ public class FoldMotionTest {
         check(!gate.accept(times(11.1), 11.25), "isolated jitter cannot accumulate forever");
         check(!gate.accept(times(11.3, 11.35, 11.4, 11.45), 15), "stale events ignored");
     }
-    public static void main(String[] args) {
+    public static class LegacyCaptureBuilder {
+        boolean secure = true, protectedContent = true;
+        public void setCaptureSecureLayers(boolean value) { secure = value; }
+        public void setAllowProtected(boolean value) { protectedContent = value; }
+    }
+    public static class ModernCaptureBuilder {
+        int secure = -1, protectedContent = -1;
+        public void setSecureContentPolicy(int value) { secure = value; }
+        public void setProtectedContentPolicy(int value) { protectedContent = value; }
+    }
+    public static class PolicyConstants {
+        public static final int SECURE_CONTENT_POLICY_REDACT = 7;
+        public static final int PROTECTED_CONTENT_POLICY_REDACT = 9;
+    }
+    static void testCapturePolicy() throws Exception {
+        LegacyCaptureBuilder legacy = new LegacyCaptureBuilder();
+        dev.tommy.foldshell.system.CapturePolicy.redact(legacy, null);
+        check(!legacy.secure && !legacy.protectedContent, "legacy capture excludes protected content");
+        ModernCaptureBuilder modern = new ModernCaptureBuilder();
+        dev.tommy.foldshell.system.CapturePolicy.redact(modern, PolicyConstants.class);
+        check(modern.secure == 7 && modern.protectedContent == 9,
+                "modern capture uses named redaction policies, not assumed enum values");
+        try {
+            dev.tommy.foldshell.system.CapturePolicy.redact(new Object(), PolicyConstants.class);
+            throw new AssertionError("unknown capture policy must fail closed");
+        } catch (NoSuchMethodException expected) { }
+        ModernCaptureBuilder missing = new ModernCaptureBuilder();
+        try {
+            dev.tommy.foldshell.system.CapturePolicy.redact(missing, Object.class);
+            throw new AssertionError("missing policy constants must fail closed");
+        } catch (NoSuchFieldException expected) { }
+        check(missing.secure == -1 && missing.protectedContent == -1,
+                "partial policy resolution never starts configuring a capture");
+    }
+    public static void main(String[] args) throws Exception {
         FoldMotion m = new FoldMotion();
         m.display(true, 0);
         m.angle(180, true, 0);
@@ -177,7 +211,42 @@ public class FoldMotionTest {
         v2.amount(6500);
         check(v2.visibility(6710) == .5f, "retained screenshot dissolves with the shadow");
         check(v2.amount(6920) == 0 && !v2.active(), "v2 idle releases all visuals");
-        testProfile(); testGate();
+        FoldMotion cycles = new FoldMotion(true);
+        cycles.angle(180, true, 0); cycles.angle(90, true, 100);
+        long closingCycle = cycles.sequence();
+        cycles.angle(0, false, 200); cycles.amount(200);
+        check(cycles.sequence() == closingCycle, "panel handoff remains the same physical cycle");
+        cycles.angle(90, false, 300);
+        check(cycles.sequence() > closingCycle, "new opening invalidates previous cover snapshot");
+        long openingCycle = cycles.sequence();
+        cycles.angle(100, true, 400);
+        check(cycles.sequence() == openingCycle, "continued angle updates do not recapture");
+        cycles.reset(); cycles.angle(0, false, 5000); cycles.hint(false, 6000);
+        cycles.angle(0, true, 6100); cycles.angle(0, false, 6200);
+        check(!cycles.hint(false, 6500), "same-angle panel changes clear pending evidence");
+        check(cycles.hint(false, 7000) && cycles.sequence() > openingCycle,
+                "new inferred motion also invalidates a prior snapshot");
+        // Sweep delivered angles through both directions and release with a skipped frame.
+        for (boolean v2Mode : new boolean[]{false, true}) {
+            FoldMotion sweep = new FoldMotion(v2Mode);
+            sweep.angle(0, false, 0);
+            for (int a = 1; a <= 180; a++) {
+                sweep.angle(a, a >= 90, a * 20L);
+                float value = sweep.amount(a * 20L);
+                check(Float.isFinite(value) && value >= 0 && value <= 1, "opening strength is bounded");
+            }
+            sweep.amount(6000);
+            check(!sweep.active(), "missed frames cannot retain completed opening forever");
+            for (int a = 179; a >= 0; a--) {
+                long time = 7000 + (179-a)*20L;
+                sweep.angle(a, a > 90, time);
+                float value = sweep.amount(time);
+                check(Float.isFinite(value) && value >= 0 && value <= 1, "closing strength is bounded");
+            }
+            sweep.amount(14000);
+            check(!sweep.active(), "missed frames cannot retain completed closing forever");
+        }
+        testProfile(); testGate(); testCapturePolicy();
         System.out.println("FoldMotionTest: PASS");
     }
 }

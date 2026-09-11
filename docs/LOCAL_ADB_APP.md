@@ -66,7 +66,7 @@ changes restart the owned engine. The standalone tool still defaults to V1; add
 `--v2` explicitly to its `run` command.
 
 `BlackGradientRenderer` captures the active physical cover display once per motion
-using ScreenCapture on a worker thread. The bitmap stays in process memory and is
+using the firmware-compatible ScreenCapture API on a worker thread. The bitmap stays in process memory and is
 released on completion, panel/size change, lock-state change, screen-off or stop.
 A generation check discards asynchronous results from an earlier transition. The
 inner display uses only a transparent left-half buffer over the live screen.
@@ -87,3 +87,5 @@ Implementation references: [AOSP ScreenCapture](https://android.googlesource.com
 Build/JVM checks do not verify Samsung capture permissions or rendering. Test cover
 snapshot onset, inner reveal, reverse closing, idle cleanup, rotation, screen-off,
 locking mid-transition, and capture-failure cleanup before claiming V2 support.
+
+The 0.4.1 review and outstanding device checks are recorded in [V2_VALIDATION.md](V2_VALIDATION.md).

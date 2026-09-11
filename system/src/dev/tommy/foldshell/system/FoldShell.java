@@ -164,7 +164,7 @@ public final class FoldShell implements SensorEventListener, DisplayManager.Disp
             lastTick = now;
             int radius = Math.round(rendered * (inner(info) ? 160 : 180) * intensity);
             if (blackRenderer != null) {
-                blackRenderer.render(String.valueOf(info.getClass().getField("uniqueId").get(info)),
+                blackRenderer.render(String.valueOf(info.getClass().getField("uniqueId").get(info)) + "/" + motion.sequence() + "/rotation=" + value(info, "rotation"),
                         info.getClass().getField("address").get(info), value(info, "logicalWidth"),
                         value(info, "logicalHeight"), value(info, "layerStack"), inner(info), !keyguard.isKeyguardLocked(),
                         rendered * intensity, motion.visibility(now));

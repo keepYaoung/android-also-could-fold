@@ -22,6 +22,7 @@ final class BlackGradientRenderer {
     private SurfaceControl layer;
     private Surface canvasSurface;
     private Bitmap snapshot;
+    private final java.util.Set<Bitmap> pendingBitmaps = new java.util.HashSet<>();
     private String identity = "";
     private int width, height, stack, lastAlpha = -1, lastVisibility = -1;
     private boolean inner, requested, snapshotAllowed;
@@ -46,12 +47,24 @@ final class BlackGradientRenderer {
                 try {
                     if (closed || generation != request) return;
                     bitmap = capture(physical, w, h);
-                    if (closed || generation != request) { bitmap.recycle(); return; }
                     final Bitmap result = bitmap;
+                    synchronized (pendingBitmaps) {
+                        if (closed || generation != request) { result.recycle(); return; }
+                        pendingBitmaps.add(result);
+                    }
                     if (!handler.post(() -> {
-                        if (closed || generation != request) result.recycle();
-                        else snapshot = result;
-                    })) result.recycle();
+                        synchronized (pendingBitmaps) {
+                            pendingBitmaps.remove(result);
+                            if (closed || generation != request) {
+                                if (!result.isRecycled()) result.recycle();
+                            } else snapshot = result;
+                        }
+                    })) {
+                        synchronized (pendingBitmaps) {
+                            pendingBitmaps.remove(result);
+                            if (!result.isRecycled()) result.recycle();
+                        }
+                    }
                 } catch (Throwable error) {
                     if (bitmap != null && !bitmap.isRecycled()) bitmap.recycle();
                     handler.post(() -> { if (!closed && generation == request) failure.accept(error); });
@@ -97,14 +110,18 @@ final class BlackGradientRenderer {
     private static Bitmap capture(long physical, int width, int height) throws Exception {
         IBinder token = (IBinder) SurfaceControl.class.getMethod("getPhysicalDisplayToken", long.class).invoke(null, physical);
         if (token == null) throw new IllegalStateException("V2 display token unavailable");
-        Class<?> argsClass = Class.forName("android.window.ScreenCapture$DisplayCaptureArgs");
-        Class<?> builderClass = Class.forName("android.window.ScreenCapture$DisplayCaptureArgs$Builder");
+        String api;
+        try { Class.forName("android.window.ScreenCaptureInternal$DisplayCaptureArgs"); api = "android.window.ScreenCaptureInternal"; }
+        catch (ClassNotFoundException legacyApi) { api = "android.window.ScreenCapture"; }
+        Class<?> argsClass = Class.forName(api + "$DisplayCaptureArgs");
+        Class<?> builderClass = Class.forName(api + "$DisplayCaptureArgs$Builder");
         Object builder = builderClass.getConstructor(IBinder.class).newInstance(token);
         builderClass.getMethod("setSize", int.class, int.class).invoke(builder, width, height);
-        builderClass.getMethod("setCaptureSecureLayers", boolean.class).invoke(builder, false);
-        builderClass.getMethod("setAllowProtected", boolean.class).invoke(builder, false);
+        Class<?> policies = api.endsWith("Internal")
+                ? Class.forName("android.window.ScreenCapture$ScreenCaptureParams") : null;
+        CapturePolicy.redact(builder, policies);
         Object args = builderClass.getMethod("build").invoke(builder);
-        Object capture = Class.forName("android.window.ScreenCapture").getMethod("captureDisplay", argsClass).invoke(null, args);
+        Object capture = Class.forName(api).getMethod("captureDisplay", argsClass).invoke(null, args);
         if (capture == null) throw new IllegalStateException("V2 screen capture unavailable; select V1 blur");
         HardwareBuffer buffer = (HardwareBuffer) capture.getClass().getMethod("getHardwareBuffer").invoke(capture);
         Bitmap hardware = null;
@@ -123,6 +140,12 @@ final class BlackGradientRenderer {
     }
     void clear() {
         generation++;
+        // close() also removes Handler callbacks; own queued results so those
+        // bitmaps are released even when their delivery callback never executes.
+        synchronized (pendingBitmaps) {
+            for (Bitmap bitmap : pendingBitmaps) if (!bitmap.isRecycled()) bitmap.recycle();
+            pendingBitmaps.clear();
+        }
         if (canvasSurface != null) { canvasSurface.release(); canvasSurface = null; }
         if (layer != null) {
             try (SurfaceControl.Transaction t = new SurfaceControl.Transaction()) {

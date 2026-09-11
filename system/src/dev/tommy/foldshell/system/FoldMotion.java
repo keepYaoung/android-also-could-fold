@@ -9,7 +9,7 @@ public final class FoldMotion {
     private float previous = Float.NaN, angle;
     private long started, lastMotion, resolving = -1, nextHint;
     private long fadeStart = -1, movementMs;
-    private long pendingHintAt = -1;
+    private long pendingHintAt = -1, sequence;
     private float fadeFrom, resolveFrom = 1;
     private Direction direction;
     private boolean inner, provisional;
@@ -22,6 +22,7 @@ public final class FoldMotion {
         float delta = next - previous;
         previous = next;
         angle = next;
+        if (inner != isInner) pendingHintAt = -1;
         inner = isInner;
         if (Float.isNaN(delta)) { nextHint = now + 800; return; }
         if (Math.abs(delta) < .15f) return;
@@ -38,6 +39,7 @@ public final class FoldMotion {
             return;
         }
         if (direction == null) {
+            sequence++;
             direction = nextDirection;
             started = lastMotion = now;
             movementMs = 0;
@@ -78,6 +80,7 @@ public final class FoldMotion {
         if (now - pendingHintAt < 250) return false;
         pendingHintAt = -1;
         if (direction != null) cancel();
+        sequence++;
         direction = candidate;
         inner = isInner;
         started = lastMotion = now;
@@ -145,6 +148,7 @@ public final class FoldMotion {
     public float visibility(long now) {
         return fadeStart < 0 ? 1 : 1 - ease(Math.min(1f, Math.max(0, now - fadeStart) / (float) RELEASE_MS));
     }
+    public long sequence() { return sequence; }
     public boolean active() { return direction != null; }
     public boolean releasing() { return fadeStart >= 0; }
     public Direction direction() { return direction; }
