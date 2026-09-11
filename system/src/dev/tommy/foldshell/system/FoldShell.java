@@ -53,6 +53,7 @@ public final class FoldShell implements SensorEventListener, DisplayManager.Disp
     private float intensity = 1f;
     private String failureMessage;
     private boolean failed, standalone;
+    private boolean extraEdgeBlur = true;
     private float rendered;
     private long lastTick;
     private int lastRadius = -1, lastWidth, lastHeight, lastStack = -1, lastEdgeKey;
@@ -109,14 +110,15 @@ public final class FoldShell implements SensorEventListener, DisplayManager.Disp
             log("COVER_GYRO registered=" + registered);
         }
         displays.registerDisplayListener(this, handler);
-        if (early) earlyMonitor = new VendorMotionMonitor(handler, this::allowed, eventMs -> {
+        if (early) earlyMonitor = new VendorMotionMonitor(handler, this::allowed, blackRenderer != null, eventMs -> {
             try {
                 if (closed || !allowed()) return;
                 long now = SystemClock.elapsedRealtime();
                 // Expire the old panel's state before deciding whether this is
                 // a new motion. Do not refresh an old closing with opening data.
                 motion.amount(now);
-                boolean began = motion.hint(inner(displayInfo()), now);
+                boolean began = blackRenderer != null ? motion.confirmedHint(inner(displayInfo()), now)
+                        : motion.hint(inner(displayInfo()), now);
                 motion.activity(eventMs);
                 log("EARLY_BURST ageMs=" + (now - eventMs) + " direction="
                         + motion.direction() + " began=" + began);
@@ -253,7 +255,7 @@ public final class FoldShell implements SensorEventListener, DisplayManager.Disp
             surface = builder.build();
             log("LAYER created valid=" + surface.isValid());
         }
-        boolean edgeBlur = blackRenderer != null && (isInner || motion.direction() == FoldMotion.Direction.OPENING);
+        boolean edgeBlur = extraEdgeBlur && blackRenderer != null && (isInner || motion.direction() == FoldMotion.Direction.OPENING);
         float edgeDepth = edgeBlur ? blackRenderer.depthProgress() : 0;
         int edgeKey = Math.round(edgeDepth * 1000);
         if (edgeKey == lastEdgeKey && radius == lastRadius && width == lastWidth && height == lastHeight && stack == lastStack && isInner == lastInner && strongRight == lastStrongRight) return;
@@ -351,6 +353,7 @@ public final class FoldShell implements SensorEventListener, DisplayManager.Disp
             Context system = (Context) activityThread.getMethod("getSystemContext").invoke(thread);
             Context context = system.createPackageContext("com.android.shell", 0);
             FoldShell shell = new FoldShell(context, java.util.Arrays.asList(args).contains("v2"));
+            shell.extraEdgeBlur = !java.util.Arrays.asList(args).contains("no-edge-blur");
             try { shell.start(seconds * 1000, java.util.Arrays.asList(args).contains("early")); Looper.loop(); }
             finally { shell.close(); }
             if (shell.failed) exitCode = 1;

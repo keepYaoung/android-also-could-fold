@@ -11,18 +11,20 @@ import java.util.function.LongConsumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/** Experimental 4 Hz diagnostic polling; no values/captures are retained. */
+/** Bounded diagnostic polling: V1 4Hz, V2 up to 10Hz with one 300ms confirmation. */
 final class VendorMotionMonitor implements AutoCloseable {
     private final Handler main;
     private final BooleanSupplier enabled;
     private final LongConsumer motion;
-    private final VendorEventGate gate = new VendorEventGate();
+    private final VendorEventGate gate;
+    private final int intervalMs;
     private volatile boolean running = true;
     private volatile Process process;
     private final Thread worker;
     private static final Pattern SAMPLE = Pattern.compile("\\s*\\d+ \\(ts=([0-9.]+),.*");
-    VendorMotionMonitor(Handler main, BooleanSupplier enabled, LongConsumer motion) {
+    VendorMotionMonitor(Handler main, BooleanSupplier enabled, boolean fastStart, LongConsumer motion) {
         this.main = main; this.enabled = enabled; this.motion = motion;
+        intervalMs = fastStart ? 100 : 250; gate = new VendorEventGate(fastStart ? 300 : 0);
         worker = new Thread(this::loop, "FoldEventMonitor");
         worker.setDaemon(true);
         worker.start();
@@ -69,7 +71,7 @@ final class VendorMotionMonitor implements AutoCloseable {
                     return; // retain public-sensor behavior when diagnostics fail
                 }
             }
-            long wait = Math.max(1, 250 - (SystemClock.elapsedRealtime() - start));
+            long wait = Math.max(1, intervalMs - (SystemClock.elapsedRealtime() - start));
             try { Thread.sleep(wait); } catch (InterruptedException stopped) { return; }
         }
     }

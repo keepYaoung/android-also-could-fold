@@ -27,7 +27,7 @@ final class BlackGradientRenderer {
     private int width, height, stack, lastAlpha = -1, lastVisibility = -1;
     private boolean inner, requested, locked, captureUnavailable;
     private float coverProgress;
-    private long progressTick, flattenStart = -1;
+    private long captureStarted, progressTick, flattenStart = -1;
     private float flattenFrom;
     private int lastLeft = -1;
     private float lastProgress = -1;
@@ -49,7 +49,7 @@ final class BlackGradientRenderer {
             clear(); identity = display; width = w; height = h; inner = isInner; stack = layerStack; locked = isLocked;
         }
         if (!requested) {
-            requested = true;
+            requested = true; captureStarted = android.os.SystemClock.elapsedRealtime();
             final int request = generation;
             // Use the currently active physical display, never an arbitrary first display.
             long physical = (Long) address.getClass().getMethod("getPhysicalDisplayId").invoke(address);
@@ -97,7 +97,13 @@ final class BlackGradientRenderer {
                 }
             });
         }
-        if (snapshot == null && !captureUnavailable) return;
+        if (snapshot == null && !captureUnavailable) {
+            if (android.os.SystemClock.elapsedRealtime() - captureStarted < 300) return;
+            // Invalidate a late result before drawing the mask. Never replace it
+            // mid-cycle with a capture that may include a newer panel/overlay.
+            generation++; captureUnavailable = true;
+            System.out.println("V2 capture fallback=live-mask reason=deadline-300ms");
+        }
         int pane = inner ? width / 2 : width;
         if (layer == null) {
             SurfaceControl.Builder builder = new SurfaceControl.Builder().setName("FoldTransition-V2")

@@ -33,6 +33,7 @@ def build():
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('command', choices=['build', 'run', 'stop', 'probe'])
 parser.add_argument('--v2', action='store_true', help='cover snapshot and black gradient instead of live blur')
+parser.add_argument('--no-edge-blur', action='store_true', help='temporary V2 comparison without additional border blur')
 parser.add_argument('--early', action='store_true', help='experimental event-timestamp start detection')
 parser.add_argument('--serial', help='ADB serial, required when multiple devices are attached')
 parser.add_argument('--seconds', type=int, default=600, help='auto-stop after 1..3600 seconds')
@@ -65,4 +66,5 @@ if args.command in ('run', 'probe'):
     print('Physical folds only; automatic expiry.' if args.command == 'run' else 'Read-only sensor probe; no visual effects.', flush=True)
     mode = ' early' if args.early and args.command == 'run' else ''
     if args.v2 and args.command == 'run': mode += ' v2'
+    if args.no_edge_blur and args.command == 'run': mode += ' no-edge-blur'
     run([*adb, 'shell', f'CLASSPATH={remote} app_process /system/bin {entry} {duration}{mode}'])

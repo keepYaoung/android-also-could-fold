@@ -1,4 +1,4 @@
-# V2 verification record — 0.4.12
+# V2 verification record — 0.4.13
 
 ## Completed locally
 
@@ -284,3 +284,23 @@ policy remain unchanged. Device visual confirmation is pending.
 For 0.4.12, JVM/DEX tests, APK assembly and Android lint passed. Installation
 succeeded and a fresh 600-second USB trial reached READY. Rasterized edge quality
 has not yet been visually confirmed on the device.
+
+## 0.4.13 shorter onset and bounded capture wait
+
+The user requested approximately 300ms start waiting, especially cover onset and
+cover-to-inner handoff. V2 now polls at up to 10Hz and uses a single 300ms sustained
+burst window, bypassing the second confirmation in FoldMotion. V1 keeps its prior
+4Hz/two-stage path. V2 rearm delays are reduced to 300ms; idle hold remains 1.5s.
+Active panel handoff does not require new motion confirmation. A capture pending
+for 300ms falls back to a live mask and invalidates late results for that cycle.
+This bounds application capture waiting, not end-to-end physical sensing latency.
+
+Added --no-edge-blur for repeatable temporary USB comparisons; the user's current
+comparison keeps additional border blur disabled, while preserving regular gradient
+blur and AA. This option does not change installed app settings. Tests cover the
+300ms gate, no double confirmation, and unchanged idle hold. Physical timing and
+higher polling cost remain unverified.
+
+For 0.4.13, JVM/DEX tests, APK assembly and Android lint passed. Installation
+succeeded and the 600-second USB trial reached READY with --no-edge-blur. Physical
+onset/handoff timing feedback remains pending.

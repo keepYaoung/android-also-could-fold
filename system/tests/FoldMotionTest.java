@@ -386,6 +386,21 @@ public class FoldMotionTest {
         }
         check(dev.tommy.foldshell.system.BlurProfile.perspectiveRegions(1000, 2200, 0, true, .5f).length == 0,
                 "edge boost disappears when base blur releases");
+        dev.tommy.foldshell.system.VendorEventGate quick = new dev.tommy.foldshell.system.VendorEventGate(300);
+        check(!quick.accept(times(1), 1), "fast gate starts from a baseline");
+        for (int i = 0; i < 3; i++) {
+            double now = 1.1 + i * .1;
+            check(!quick.accept(times(now-.04, now-.03, now-.02, now-.01), now),
+                    "fast onset still rejects bursts shorter than 300ms");
+        }
+        check(quick.accept(times(1.36, 1.37, 1.38, 1.39), 1.4), "fast onset qualifies at 300ms");
+        FoldMotion quickMotion = new FoldMotion(true);
+        quickMotion.angle(0, false, 0);
+        check(quickMotion.confirmedHint(false, 1000), "qualified burst does not wait for a second confirmation");
+        quickMotion.amount(2499);
+        check(!quickMotion.releasing(), "300ms onset does not shorten the 1.5s idle hold");
+        quickMotion.amount(2500);
+        check(quickMotion.releasing(), "original idle release still applies");
         testProfile(); testGate(); testCapturePolicy();
         System.out.println("FoldMotionTest: PASS");
     }

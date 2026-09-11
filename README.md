@@ -20,6 +20,7 @@ Turn off **V2 · capture + black gradient** (`V2 · 캡처 + 블랙 그라디언
 app to return to V1. Mode changes restart the engine if enabled.
 
 - Overall effect intensity: **50–150%**.
+- For a temporary USB comparison without extra border blur, add `--no-edge-blur` to the `run --v2` command. This does not change app settings.
 - Perspective snapshots use anti-aliased polygon edges with filtered texture sampling (0.4.12).
 - V2 adds stronger blur around the projected edges and black surround (0.4.11),
   preserving the existing interior gradient. The border follows the moving shape
@@ -65,14 +66,16 @@ Execution is blocked on other models; other Fold7 variants are not yet supported
 compatibility needs to be checked after One UI updates.
 
 On this device, the public hinge sensor mainly reports **0 / 90 / 180 degrees**.
-Early opening on the cover and early closing on the inner display both require
-a second sustained motion signal to reduce reactions to brief handling noise.
-This adds roughly 0.5 seconds to inferred onset compared with a single accepted
-burst; reported angle changes start the effect without this extra wait.
+V2 uses one 300ms sustained-signal confirmation window for early opening/closing.
+V1 retains the older second-burst confirmation. Reported hinge changes and an active
+cover-to-inner handoff do not add a new confirmation wait. Sensor delivery, polling
+and capture add latency; this is not a guaranteed 300ms physical-onset-to-pixel time.
+V2 waits at most 300ms for a capture before using the live mask and discarding late
+results for that cycle. The 1.5-second idle hold remains unchanged.
 
 Early motion is inferred from vendor event timestamps in `dumpsys sensorservice`.
 The engine does not read hidden continuous angle values. Very slow movement and
-small reversals may be missed. Diagnostic polling runs at 4 Hz while the screen
+small reversals may be missed. Diagnostic polling targets 10 Hz for V2 and 4 Hz for V1 while the screen
 is interactive; long-term battery impact has not been measured.
 
 ## Verification status
@@ -88,7 +91,7 @@ is interactive; long-term battery impact has not been measured.
 | Cover sensitivity adjustment in 0.3.1 | JVM tests passed; physical feedback pending |
 | App-owned wireless pairing, USB independence and reboot recovery | Not yet verified end to end |
 
-See [the 0.4.12 verification record](docs/V2_VALIDATION.md) for fixes and remaining
+See [the 0.4.13 verification record](docs/V2_VALIDATION.md) for fixes and remaining
 physical checks.
 
 Choose the **temporary USB trial** below for a ten-minute test, or the
@@ -149,7 +152,7 @@ For ongoing use and an intensity control UI, use the app setup below.
 [AGENTS.md](AGENTS.md) contains the agent workflow and user communication guidance
 (in Korean).
 
-## Single-app setup (0.4.12)
+## Single-app setup (0.4.13)
 
 **Shizuku is no longer required.** This APK includes local wireless ADB pairing,
 engine startup, and reconnection. One UI is preserved, and the V1 blur remains

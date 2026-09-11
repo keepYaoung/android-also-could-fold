@@ -24,7 +24,7 @@ public final class FoldMotion {
         angle = next;
         if (inner != isInner) pendingHintAt = -1;
         inner = isInner;
-        if (Float.isNaN(delta)) { nextHint = now + 800; return; }
+        if (Float.isNaN(delta)) { nextHint = now + (blackGradient ? 300 : 800); return; }
         if (Math.abs(delta) < .15f) return;
         pendingHintAt = -1;
         Direction nextDirection = delta > 0 ? Direction.OPENING : Direction.CLOSING;
@@ -47,7 +47,7 @@ public final class FoldMotion {
         } else activity(now);
         provisional = false;
         lastMotion = now;
-        if (next <= 1 || next >= 179) nextHint = now + 800;
+        if (next <= 1 || next >= 179) nextHint = now + (blackGradient ? 300 : 800);
         display(isInner, now);
     }
 
@@ -60,7 +60,9 @@ public final class FoldMotion {
         lastMotion = eventTime;
     }
 
-    public boolean hint(boolean isInner, long now) {
+    public boolean hint(boolean isInner, long now) { return hint(isInner, now, false); }
+    public boolean confirmedHint(boolean isInner, long now) { return hint(isInner, now, true); }
+    private boolean hint(boolean isInner, long now, boolean confirmed) {
         if (inner != isInner) { pendingHintAt = -1; inner = isInner; }
         if (Float.isNaN(previous)) { pendingHintAt = -1; return false; }
         Direction candidate;
@@ -73,11 +75,11 @@ public final class FoldMotion {
         }
         // A single diagnostic burst can be handling noise on either panel.
         // Require a second sustained burst before inferring movement.
-        if (pendingHintAt < 0 || now - pendingHintAt > 700) {
+        if (!confirmed && (pendingHintAt < 0 || now - pendingHintAt > 700)) {
             pendingHintAt = now;
             return false;
         }
-        if (now - pendingHintAt < 250) return false;
+        if (!confirmed && now - pendingHintAt < 250) return false;
         pendingHintAt = -1;
         if (direction != null) cancel();
         sequence++;
@@ -87,7 +89,7 @@ public final class FoldMotion {
         movementMs = 0;
         resolving = -1;
         provisional = true;
-        nextHint = now + 2500;
+        nextHint = now + (blackGradient ? 300 : 2500);
         return true;
     }
 
@@ -128,7 +130,7 @@ public final class FoldMotion {
         // Preserve the last rendered target across a direction change.
         fadeFrom = lastOutput;
         fadeStart = now;
-        nextHint = Math.max(nextHint, now + RELEASE_MS + 600);
+        nextHint = Math.max(nextHint, now + RELEASE_MS + (blackGradient ? 300 : 600));
     }
     private float lastOutput;
     public float amount(long now) {
