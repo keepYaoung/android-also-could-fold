@@ -102,6 +102,24 @@ The current app UI is in Korean. Root is not required; Shizuku must run as
 **shell UID 2000**. If an older ADB trial is running, stop it first with
 `python3 tools/fold-system.py stop`. Stopping Shizuku also stops the blur engine.
 
+## Verify operation without USB
+
+After setup, start Shizuku using **Start via Wireless debugging** in the Shizuku
+app, then enable the effect in Fold Transition. Keep Wi-Fi enabled, unplug USB,
+and test a physical fold. App-process recovery tests alone do not prove that the
+engine survives a cable disconnection.
+
+If the effect stops, first check whether Shizuku still says **running**. A stopped
+Shizuku server also stops this app's engine; the app cannot restore shell privileges
+on its own. Start Shizuku wirelessly again, then check the effect's enabled state.
+If Shizuku is still running, check the status/error shown in Fold Transition.
+
+The [official troubleshooting guide](https://shizuku.rikka.app/guide/setup/#start-via-wireless-debugging-start-by-connecting-to-a-computer-shizuku-randomly-stops)
+also recommends allowing background operation, keeping developer options and USB
+debugging enabled, and using **Default USB configuration → No data transfer**.
+A USB disconnection has stopped Shizuku on the test device; do not assume a
+computer-started session will survive unplugging without testing it.
+
 ## Recovery after reboot
 
 The app saves its enabled state and intensity. On boot or Shizuku Binder

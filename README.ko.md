@@ -94,6 +94,23 @@ Ctrl+C나 USB 분리만으로 종료됐다고 판단하지 말고, 필요하면 
 구버전 ADB 시험이 실행 중이면 `python3 tools/fold-system.py stop`으로 먼저 종료하세요.
 Shizuku를 중지하면 블러 엔진도 종료됩니다.
 
+## USB 없이 동작하는지 확인하기
+
+설정 후 Shizuku 앱의 **무선 디버깅으로 시작**으로 실행하고, Fold Transition에서
+효과를 켜세요. Wi-Fi를 켜둔 채 USB를 뽑고 실제로 접었다 펼쳐봅니다.
+앱 프로세스 종료 후 복구 시험만으로 케이블 분리 후 유지까지 검증되지는 않습니다.
+
+효과가 멈추면 먼저 Shizuku가 **실행 중**인지 확인하세요. Shizuku 서버가 종료되면
+블러 엔진도 종료되며, 앱만으로 shell 권한을 다시 얻을 수는 없습니다.
+Shizuku를 무선으로 다시 실행한 뒤 효과의 켜짐 상태를 확인하세요.
+Shizuku가 살아 있다면 Fold Transition의 실행 상태나 오류를 확인합니다.
+
+[공식 문제 해결 안내](https://shizuku.rikka.app/guide/setup/#start-via-wireless-debugging-start-by-connecting-to-a-computer-shizuku-randomly-stops)는
+백그라운드 실행 허용, 개발자 옵션·USB 디버깅 유지,
+**기본 USB 구성 → 데이터 전송 안 함**도 권장합니다.
+시험 기기에서 USB 분리와 함께 Shizuku가 종료된 사례가 있으므로, PC로 시작한
+세션이 케이블 분리 후에도 유지된다고 검증 없이 가정하지 마세요.
+
 ## 재부팅 후 복구
 
 앱은 켜짐 상태와 강도를 저장합니다. 부팅 또는 Shizuku Binder 재연결 시,
