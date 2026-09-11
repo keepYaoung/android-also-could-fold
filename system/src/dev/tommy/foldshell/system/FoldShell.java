@@ -140,9 +140,14 @@ public final class FoldShell implements SensorEventListener, DisplayManager.Disp
             if (event.values.length >= 3) {
                 long now = SystemClock.elapsedRealtime();
                 coverRotation.sample(event.values[1], event.timestamp, now);
-                if (gyroDriving && motion.active()
-                        && !motion.releasing() && coverRotation.reversed())
-                    motion.reverse(now);
+                if (gyroDriving && motion.active() && !motion.releasing()) {
+                    // Only sustain an already hinge/vendor-confirmed fold. Gyro
+                    // cannot start an effect, and stationary noise cannot prolong it.
+                    if (coverRotation.reversed()) {
+                        log("V2_RELEASE reason=gyro-reversal panel=" + (rotationInner ? "inner" : "cover"));
+                        motion.reverse(now);
+                    } else if (coverRotation.advancing()) motion.activity(now);
+                }
             }
             return;
         }

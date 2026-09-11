@@ -287,3 +287,5 @@ the care put into the experience will match the ambition of the technology.
 Bundled dependencies retain their own licenses; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 Cover-to-inner opening retains the incoming cover depth until the first drawable inner frame, including when the fully-open signal arrives during capture. It then aligns to the right pane within 140ms if already fully open.
+
+During an already confirmed fold, forward gyro movement also refreshes the 1.5-second stationary timer so slow unfolding can continue across sparse hinge events. Gyro alone does not start an effect.

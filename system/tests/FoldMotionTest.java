@@ -297,11 +297,30 @@ public class FoldMotionTest {
         for (int i = 1; i <= 50; i++) rotation.sample((float) Math.PI / 2,
                 1_020_000_000L + i * 20_000_000L, 1020 + i * 20);
         check(rotation.progress() > .99f, "90 degrees of measured rotation maps to full progress");
+        check(rotation.advancing(), "forward gyro reports continued confirmed movement");
+        FoldMotion sustained = new FoldMotion(true);
+        sustained.angle(0, false, 1000);
+        sustained.angle(90, false, 1100);
+        for (int t = 1120; t <= 4100; t += 20) {
+            if (rotation.advancing()) sustained.activity(t);
+            sustained.amount(t);
+            check(sustained.active() && !sustained.releasing(),
+                    "continued gyro movement must survive gaps between coarse hinge events");
+        }
+        sustained.display(true, 4200);
+        sustained.amount(4200);
+        check(sustained.active() && !sustained.releasing(), "slow opening survives inner handoff");
+        sustained.amount(5600);
+        check(sustained.releasing(), "actual 1.5s stop still starts dissolve");
+        sustained.amount(6220);
+        check(!sustained.active(), "stationary dissolve still completes");
         float held = rotation.progress();
         for (int i = 1; i <= 50; i++) rotation.sample(.001f,
                 2_020_000_000L + i * 20_000_000L, 2020 + i * 20);
         check(rotation.progress() == held, "elapsed time and stationary noise cannot advance retreat");
+        check(!rotation.advancing(), "stationary gyro noise cannot refresh idle hold");
         rotation.sample(-2, 3_040_000_000L, 3040);
+        check(!rotation.advancing(), "reverse movement cannot prolong opening");
         check(rotation.reversed(), "measured reverse rotation requests dissolve");
         rotation.reset();
         rotation.sample(1, 4_000_000_000L, 4000);

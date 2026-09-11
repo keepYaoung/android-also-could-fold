@@ -7,9 +7,10 @@ public final class CoverRotation {
     private final ArrayDeque<double[]> recent = new ArrayDeque<>();
     private long lastNs, lastReceipt = -1;
     private float degrees, peak;
-    private boolean active;
+    private boolean active, advancing;
     private float direction = 1;
     public void sample(float yRadiansPerSecond, long sensorNs, long now) {
+        advancing = false;
         if (!Float.isFinite(yRadiansPerSecond)) return;
         long previous = lastNs;
         if (sensorNs <= previous) return;
@@ -22,6 +23,7 @@ public final class CoverRotation {
                 : (float) (yRadiansPerSecond * (sensorNs - previous) / 1e9 * 180 / Math.PI);
         recent.addLast(new double[]{now, delta});
         if (active) {
+            advancing = direction * yRadiansPerSecond >= .08f;
             degrees = Math.max(0, Math.min(90, degrees + direction * delta));
             peak = Math.max(peak, degrees);
         }
@@ -36,7 +38,8 @@ public final class CoverRotation {
         active = true; return true;
     }
     public float progress() { return peak / 90f; }
+    public boolean advancing() { return active && advancing; }
     public boolean reversed() { return active && peak - degrees >= 1.5f; }
-    public void end() { active = false; degrees = peak = 0; }
+    public void end() { active = false; advancing = false; degrees = peak = 0; }
     public void reset() { end(); recent.clear(); lastNs = 0; lastReceipt = -1; }
 }

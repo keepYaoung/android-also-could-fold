@@ -335,3 +335,20 @@ Physical confirmation is pending; extra edge blur remains off in the USB trial.
 For 0.4.15, JVM/DEX tests, APK assembly and lint passed. APK installation
 succeeded and the 600-second USB trial reached READY. Physical handoff appearance
 still requires user confirmation.
+
+## 0.4.16 sustain confirmed folds with gyro motion
+
+0.4.15 device logs showed a cover opening ending about 2.12s after the 90-degree
+sample, before the subsequent 180-degree sample started a fresh, flat inner cycle.
+Gyro drove perspective but never refreshed FoldMotion activity; no vendor bursts
+were logged during this trial. Forward gyro above 0.08 rad/s now sustains only an
+already active, non-releasing confirmed fold. Stationary noise, missing samples,
+reverse motion and inactive state do not refresh the hold. The 1.5s stationary
+hold and 620ms idle dissolve remain. Gyro reversal releases now log their reason
+and panel to distinguish them from idle expiry. Tests exercise a slow opening
+across a multi-second coarse-sensor gap and subsequent stationary release.
+Physical validation of this fix remains pending.
+
+JVM/DEX tests, APK assembly and Android lint passed for 0.4.16. Installation
+succeeded; the 600-second USB trial reached READY on the cover display with
+additional edge blur disabled. Physical confirmation remains pending.
