@@ -97,7 +97,7 @@ final class BlackGradientRenderer {
         progressTick = now;
         // Release opacity must never rewind the spatial opening animation.
         if (!inner && opening)
-            coverProgress += Math.max(0, targetProgress - coverProgress) * Math.min(1, dt / 140f);
+            coverProgress += Math.max(0, targetProgress - coverProgress) * Math.min(1, dt / 45f);
         if (!inner && opening) {
             int step = (int) (coverProgress * 5);
             if (step != diagnosticStep) {

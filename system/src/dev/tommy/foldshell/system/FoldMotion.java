@@ -147,9 +147,10 @@ public final class FoldMotion {
     }
     public float coverProgress(long now) {
         if (!provisional) return Math.max(0, Math.min(1, angle / 180f));
-        float ramp = ease(Math.min(1, Math.max(0, now - started) / 220f));
-        return (.2f + .5f * Math.min(1f, movementMs / 1800f)) * ramp;
+        // No angle measurement yet: show only a small onset, never timed retreat.
+        return .08f;
     }
+    public void reverse(long now) { release(now); }
     public float visibility(long now) {
         return fadeStart < 0 ? 1 : 1 - ease(Math.min(1f, Math.max(0, now - fadeStart) / (float) RELEASE_MS));
     }

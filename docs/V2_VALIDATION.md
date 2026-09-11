@@ -1,4 +1,4 @@
-# V2 verification record — 0.4.5
+# V2 verification record — 0.4.6
 
 ## Completed locally
 
@@ -145,3 +145,28 @@ from both panels or the ability to separate whole-device rotation from hinge mot
 For 0.4.5, JVM/DEX tests, APK assembly and Android lint passed. Installation
 succeeded on the connected Fold7. A new 600-second USB trial reached READY;
 unlocked-cover perspective rendering has not yet been physically confirmed.
+
+## 0.4.6 relative-rotation cover driver
+
+The user confirmed the 0.4.5 shape renders, but its progress jumps instead of following
+opening angle. A 120-second read-only probe registered public accelerometer, gyro,
+gravity and game rotation vector sensors (about 5,760 events each), plus 13 hinge
+events with only 0/90/180 values. Vendor angle subscriptions still returned false.
+Gyro Y changed sign with opening/closing in the instructed trial. Whole-device
+rotation remains a confounder; this is not validated continuous hinge sensing.
+The probe printed its timed summary, then exited with status 137 (Killed), which is
+recorded as abnormal termination rather than a clean pass. Raw data stays in ignored
+build output and is not committed.
+
+Cover retreat now integrates relative gyro Y rotation only after a fold is activated.
+A bounded 500ms sample history compensates some detection delay. Gyro alone cannot
+activate the effect. Time-based provisional retreat was removed; missing gyro uses
+coarse hinge progress with a fixed initial onset. Deadband, stale sample rejection,
+90° integration cap and 1.5° estimated reversal release limit drift. Inner/V1 strength
+is unchanged. Gyro is requested at 50Hz for V2; long-term power cost is unverified.
+Unit checks cover integration, stationary hold, stale data and reversal. Actual
+visual synchronization and whole-device false motion require physical feedback.
+
+For 0.4.6, JVM/DEX tests, APK assembly and Android lint passed. Installation
+succeeded and the fresh 600-second USB trial reported COVER_GYRO registered=true
+and READY. Visual synchronization feedback remains pending.

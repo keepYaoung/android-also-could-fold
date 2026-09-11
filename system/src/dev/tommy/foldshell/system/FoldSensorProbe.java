@@ -16,14 +16,18 @@ import java.util.Set;
 /** Read-only sensor diagnostic. Does not create surfaces or alter device state. */
 public final class FoldSensorProbe implements SensorEventListener {
     private final Map<Integer, Set<Float>> values = new HashMap<>();
+    private final Map<Integer, Integer> counts = new HashMap<>();
     private final Map<Integer, Long> printed = new HashMap<>();
     @Override public void onSensorChanged(SensorEvent event) {
         if (event.values.length == 0) return;
         int type = event.sensor.getType();
-        values.computeIfAbsent(type, key -> new HashSet<>()).add(event.values[0]);
+        if (type == Sensor.TYPE_HINGE_ANGLE || type == 65686 || type == 65695)
+            values.computeIfAbsent(type, key -> new HashSet<>()).add(event.values[0]);
+        counts.merge(type, 1, Integer::sum);
         long now = SystemClock.elapsedRealtime();
-        if (now - printed.getOrDefault(type, 0L) >= 50) {
-            System.out.println(now + " type=" + type + " angle=" + event.values[0]);
+        if (now - printed.getOrDefault(type, 0L) >= 100) {
+            System.out.println(now + " type=" + type + " sensorNs=" + event.timestamp
+                    + " values=" + java.util.Arrays.toString(event.values));
             printed.put(type, now);
         }
     }
@@ -62,11 +66,12 @@ public final class FoldSensorProbe implements SensorEventListener {
             System.out.println("LID unavailable=" + (error.getCause() == null ? error : error.getCause()));
         }
         final boolean cleanupLid = lidSubscribed;
-        for (int type : new int[]{Sensor.TYPE_HINGE_ANGLE, 65686, 65695}) {
+        for (int type : new int[]{Sensor.TYPE_HINGE_ANGLE, Sensor.TYPE_ACCELEROMETER, Sensor.TYPE_GYROSCOPE,
+                Sensor.TYPE_GRAVITY, Sensor.TYPE_GAME_ROTATION_VECTOR, 65686, 65695}) {
             Sensor sensor = manager.getDefaultSensor(type);
             if (sensor == null) { System.out.println("type=" + type + " absent"); continue; }
             try {
-                boolean accepted = manager.registerListener(probe, sensor, 10000, handler);
+                boolean accepted = manager.registerListener(probe, sensor, 20000, handler);
                 System.out.println("type=" + type + " name=" + sensor.getName() + " registered=" + accepted);
             } catch (SecurityException denied) {
                 System.out.println("type=" + type + " DENIED " + denied.getMessage());
@@ -74,6 +79,7 @@ public final class FoldSensorProbe implements SensorEventListener {
         }
         handler.postDelayed(() -> {
             manager.unregisterListener(probe);
+            System.out.println("SUMMARY counts=" + probe.counts);
             for (Map.Entry<Integer, Set<Float>> entry : probe.values.entrySet()) {
                 System.out.println("SUMMARY type=" + entry.getKey() + " uniqueAngles=" + entry.getValue().size()
                         + " samples=" + entry.getValue());

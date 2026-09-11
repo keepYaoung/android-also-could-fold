@@ -30,7 +30,12 @@ edge retreat, forming a perspective trapezoid over black. The black backing rema
 until release so the live screen does not show around the image. On the lock screen,
 there is no snapshot and therefore no image retreat—only the live gradient. This is an experimental visual estimate, not world-space
 stabilization: there is no viewer tracking or continuous measured hinge angle.
-Physical tuning remains pending.
+Version 0.4.6 drives cover retreat from relative gyroscope Y rotation after a fold
+has been detected, instead of elapsed-motion timing. It samples at approximately
+50 Hz and requests a dissolve after 1.5° of estimated reverse rotation. This is
+**not a measured hinge angle**: moving the whole device can affect the estimate.
+Without fresh gyro data, it falls back to coarse hinge steps and a fixed early onset.
+Stationary time alone does not advance retreat. Physical tuning remains pending.
 
 V2 snapshots are transient memory buffers, never files or uploads. Protected content
 is excluded from capture; excluded regions may appear blank. The snapshot freezes
@@ -67,7 +72,7 @@ is interactive; long-term battery impact has not been measured.
 | Cover sensitivity adjustment in 0.3.1 | JVM tests passed; physical feedback pending |
 | App-owned wireless pairing, USB independence and reboot recovery | Not yet verified end to end |
 
-See [the 0.4.5 verification record](docs/V2_VALIDATION.md) for fixes and remaining
+See [the 0.4.6 verification record](docs/V2_VALIDATION.md) for fixes and remaining
 physical checks.
 
 Choose the **temporary USB trial** below for a ten-minute test, or the
@@ -128,7 +133,7 @@ For ongoing use and an intensity control UI, use the app setup below.
 [AGENTS.md](AGENTS.md) contains the agent workflow and user communication guidance
 (in Korean).
 
-## Single-app setup (0.4.5)
+## Single-app setup (0.4.6)
 
 **Shizuku is no longer required.** This APK includes local wireless ADB pairing,
 engine startup, and reconnection. One UI is preserved, and the V1 blur remains

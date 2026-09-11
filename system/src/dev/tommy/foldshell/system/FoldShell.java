@@ -43,6 +43,9 @@ public final class FoldShell implements SensorEventListener, DisplayManager.Disp
     private final Method crop = method("setWindowCrop", SurfaceControl.class, Rect.class);
     private SurfaceControl surface;
     private VendorMotionMonitor earlyMonitor;
+    private final CoverRotation coverRotation = new CoverRotation();
+    private long rotationSequence = -1;
+    private boolean gyroDriving;
     private boolean scheduled;
     private boolean closed;
     private float intensity = 1f;
@@ -96,6 +99,11 @@ public final class FoldShell implements SensorEventListener, DisplayManager.Disp
         if (hinge == null) throw new IllegalStateException("No hinge angle sensor");
         if (!sensors.registerListener(this, hinge, SensorManager.SENSOR_DELAY_GAME, handler))
             throw new IllegalStateException("Hinge subscription refused");
+        if (blackRenderer != null) {
+            Sensor gyro = sensors.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
+            boolean registered = gyro != null && sensors.registerListener(this, gyro, 20000, handler);
+            log("COVER_GYRO registered=" + registered);
+        }
         displays.registerDisplayListener(this, handler);
         if (early) earlyMonitor = new VendorMotionMonitor(handler, this::allowed, eventMs -> {
             try {
@@ -121,6 +129,17 @@ public final class FoldShell implements SensorEventListener, DisplayManager.Disp
 
     @Override public void onSensorChanged(SensorEvent event) {
         if (event.values.length == 0) return;
+        if (event.sensor.getType() == Sensor.TYPE_GYROSCOPE) {
+            if (!allowed()) { coverRotation.reset(); gyroDriving = false; rotationSequence = -1; return; }
+            if (event.values.length >= 3) {
+                long now = SystemClock.elapsedRealtime();
+                coverRotation.sample(event.values[1], event.timestamp, now);
+                if (gyroDriving && motion.direction() == FoldMotion.Direction.OPENING
+                        && !motion.releasing() && coverRotation.reversed())
+                    motion.reverse(now);
+            }
+            return;
+        }
         try {
             Object info = displayInfo();
             FoldMotion.Direction before = motion.direction();
@@ -158,17 +177,28 @@ public final class FoldShell implements SensorEventListener, DisplayManager.Disp
             if (value(info, "state") != Display.STATE_ON) { destroySurface(); return; }
             motion.display(inner(info), now);
             float target = motion.amount(now);
-            if (!motion.active()) { destroySurface(); log("END"); return; }
+            if (!motion.active()) { coverRotation.end(); gyroDriving = false;
+                rotationSequence = -1; destroySurface(); log("END"); return; }
             float dt = lastTick == 0 ? 16 : Math.min(64, now - lastTick);
             rendered += (target - rendered) * Math.min(1f, dt / (motion.releasing() ? 55f : 120f));
             lastTick = now;
             int radius = Math.round(rendered * (inner(info) ? 160 : 180) * intensity);
             if (blackRenderer != null) {
+                boolean coverOpening = !inner(info) && motion.direction() == FoldMotion.Direction.OPENING;
+                if (coverOpening && rotationSequence != motion.sequence()) {
+                    rotationSequence = motion.sequence();
+                    gyroDriving = coverRotation.begin(now);
+                    log("COVER_PROGRESS source=" + (gyroDriving ? "relative-gyro" : "coarse-hinge"));
+                } else if (!coverOpening) {
+                    coverRotation.end(); gyroDriving = false; rotationSequence = -1;
+                }
+                float coverProgress = gyroDriving ? coverRotation.progress() : motion.coverProgress(now);
+                if (motion.releasing()) coverRotation.end();
                 blackRenderer.render(String.valueOf(info.getClass().getField("uniqueId").get(info)) + "/" + motion.sequence() + "/rotation=" + value(info, "rotation"),
                         info.getClass().getField("address").get(info), value(info, "logicalWidth"),
                         value(info, "logicalHeight"), value(info, "layerStack"), inner(info), !keyguard.isKeyguardLocked(),
                         rendered * intensity, motion.visibility(now),
-                        motion.direction() == FoldMotion.Direction.OPENING, motion.coverProgress(now), intensity);
+                        motion.direction() == FoldMotion.Direction.OPENING, coverProgress, intensity);
             } else if (radius > 0) render(info, radius);
             else destroySurface();
             scheduled = true;

@@ -289,6 +289,23 @@ public class FoldMotionTest {
                 "closed cover snapshot starts at native size");
         check(dev.tommy.foldshell.system.CoverReveal.depthScale(.5f) < .8f,
                 "first coarse opening sample produces visible depth retreat");
+        dev.tommy.foldshell.system.CoverRotation rotation = new dev.tommy.foldshell.system.CoverRotation();
+        check(!rotation.begin(0), "missing gyro cannot claim angle tracking");
+        rotation.sample(0, 1_000_000_000L, 1000);
+        rotation.sample(0, 1_020_000_000L, 1020);
+        check(rotation.begin(1020), "fresh gyro can track a confirmed fold");
+        for (int i = 1; i <= 50; i++) rotation.sample((float) Math.PI / 2,
+                1_020_000_000L + i * 20_000_000L, 1020 + i * 20);
+        check(rotation.progress() > .99f, "90 degrees of measured rotation maps to full progress");
+        float held = rotation.progress();
+        for (int i = 1; i <= 50; i++) rotation.sample(.001f,
+                2_020_000_000L + i * 20_000_000L, 2020 + i * 20);
+        check(rotation.progress() == held, "elapsed time and stationary noise cannot advance retreat");
+        rotation.sample(-2, 3_040_000_000L, 3040);
+        check(rotation.reversed(), "measured reverse rotation requests dissolve");
+        rotation.reset();
+        rotation.sample(1, 4_000_000_000L, 4000);
+        check(!rotation.begin(4500), "stale gyro must not drive a new fold");
         testProfile(); testGate(); testCapturePolicy();
         System.out.println("FoldMotionTest: PASS");
     }
