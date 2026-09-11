@@ -246,6 +246,23 @@ public class FoldMotionTest {
             sweep.amount(14000);
             check(!sweep.active(), "missed frames cannot retain completed closing forever");
         }
+        check(dev.tommy.foldshell.system.CoverReveal.left(0) == 1, "cover shadow starts outside right edge");
+        check(dev.tommy.foldshell.system.CoverReveal.left(.4f) < .2f, "cover shadow enters from right");
+        check(dev.tommy.foldshell.system.CoverReveal.left(1) > 1, "cover shadow exits beyond right edge");
+        check(dev.tommy.foldshell.system.CoverReveal.opacity(0) == 0
+                && dev.tommy.foldshell.system.CoverReveal.opacity(1) == 0, "cover shadow dissolves at both ends");
+        float lastSnapshot = 1, lastExit = 1;
+        for (int i = 0; i <= 100; i++) {
+            float p = i / 100f;
+            float snapshot = dev.tommy.foldshell.system.CoverReveal.snapshot(p);
+            check(snapshot <= lastSnapshot && snapshot >= 0, "snapshot only dissolves forward");
+            lastSnapshot = snapshot;
+            if (p >= .4f) {
+                float opacity = dev.tommy.foldshell.system.CoverReveal.opacity(p);
+                check(opacity <= lastExit + .00001f, "outgoing gradient never darkens again");
+                lastExit = opacity;
+            }
+        }
         testProfile(); testGate(); testCapturePolicy();
         System.out.println("FoldMotionTest: PASS");
     }

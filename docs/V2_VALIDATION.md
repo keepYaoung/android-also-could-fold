@@ -66,3 +66,17 @@ USB observations or source inspection:
 For installation and first pairing, follow the README. Do not run the standalone
 trial beside an enabled app engine. Test physical movements and report the observed
 result separately from logs; a RUNNING message alone does not prove visual output.
+
+## 0.4.2 cover motion tuning
+
+User feedback requested a right-edge entrance followed by move-out and dissolve.
+The cover shadow now enters from the right, then travels back out to the right while
+fading. The retained snapshot also dissolves into the live screen. Spatial progress
+is monotonic during opening so idle release does not rewind the shadow. Progress
+still uses coarse hinge samples and provisional motion timing, not continuous angle
+measurement. Inner rendering is unchanged.
+
+JVM profile/state tests and DEX build passed; APK assembly and Android lint passed.
+The 0.4.2 APK installed successfully on the connected Fold7. A new 600-second
+USB trial reached READY with the V2 backend; physical confirmation of the revised
+timing remains pending. App-owned wireless operation was not exercised.

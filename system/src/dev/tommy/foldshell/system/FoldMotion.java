@@ -145,6 +145,11 @@ public final class FoldMotion {
         } else lastOutput = strength(now);
         return lastOutput;
     }
+    public float coverProgress(long now) {
+        if (!provisional) return Math.max(0, Math.min(1, angle / 90f));
+        float ramp = ease(Math.min(1, Math.max(0, now - started) / 220f));
+        return (.2f + .8f * Math.min(1f, movementMs / 1200f)) * ramp;
+    }
     public float visibility(long now) {
         return fadeStart < 0 ? 1 : 1 - ease(Math.min(1f, Math.max(0, now - fadeStart) / (float) RELEASE_MS));
     }

@@ -26,13 +26,16 @@ final class BlackGradientRenderer {
     private String identity = "";
     private int width, height, stack, lastAlpha = -1, lastVisibility = -1;
     private boolean inner, requested, snapshotAllowed;
+    private float coverProgress;
+    private long progressTick;
+    private int lastLeft = -1;
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
 
     BlackGradientRenderer(Handler handler, Consumer<Throwable> failure) {
         this.handler = handler; this.failure = failure;
     }
     void render(String display, Object address, int w, int h, int layerStack,
-                boolean isInner, boolean allowSnapshot, float amount, float visibility) throws Exception {
+                boolean isInner, boolean allowSnapshot, float amount, float visibility, boolean opening, float targetProgress) throws Exception {
         if (closed) return;
         if (!identity.equals(display) || width != w || height != h || inner != isInner || stack != layerStack || snapshotAllowed != allowSnapshot) {
             clear(); identity = display; width = w; height = h; inner = isInner; stack = layerStack; snapshotAllowed = allowSnapshot;
@@ -81,9 +84,17 @@ final class BlackGradientRenderer {
             layer = builder.build();
             canvasSurface = new Surface(layer);
         }
-        int alpha = Math.round(255 * .94f * clamp(amount));
-        int bitmapAlpha = Math.round(255 * clamp(visibility));
-        if (alpha == lastAlpha && bitmapAlpha == lastVisibility) return;
+        long now = android.os.SystemClock.elapsedRealtime();
+        float dt = progressTick == 0 ? 16 : Math.min(64, now - progressTick);
+        progressTick = now;
+        // Release opacity must never rewind the spatial opening animation.
+        if (!inner && opening)
+            coverProgress += Math.max(0, targetProgress - coverProgress) * Math.min(1, dt / 140f);
+        float reveal = !inner && opening ? CoverReveal.opacity(coverProgress) : 1;
+        int left = !inner && opening ? Math.round(pane * CoverReveal.left(coverProgress)) : 0;
+        int alpha = Math.round(255 * .94f * clamp(amount) * reveal);
+        int bitmapAlpha = Math.round(255 * clamp(visibility) * (!inner && opening ? CoverReveal.snapshot(coverProgress) : 1));
+        if (alpha == lastAlpha && bitmapAlpha == lastVisibility && left == lastLeft) return;
         Canvas canvas = canvasSurface.lockCanvas(null);
         try {
             canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
@@ -93,7 +104,7 @@ final class BlackGradientRenderer {
                 canvas.drawBitmap(snapshot, null, new Rect(0, 0, pane, height), paint);
             }
             paint.setAlpha(255);
-            paint.setShader(new LinearGradient(0, 0, pane, 0,
+            paint.setShader(new LinearGradient(left, 0, !inner && opening ? left + pane * .85f : pane, 0,
                     inner ? Color.argb(alpha, 0, 0, 0) : Color.TRANSPARENT,
                     inner ? Color.TRANSPARENT : Color.argb(alpha, 0, 0, 0), Shader.TileMode.CLAMP));
             canvas.drawRect(0, 0, pane, height, paint);
@@ -104,7 +115,7 @@ final class BlackGradientRenderer {
             SurfaceControl.Transaction.class.getMethod("show", SurfaceControl.class).invoke(t, layer);
             t.apply();
         }
-        lastAlpha = alpha; lastVisibility = bitmapAlpha;
+        lastAlpha = alpha; lastVisibility = bitmapAlpha; lastLeft = left;
     }
     private static float clamp(float x) { return Math.max(0, Math.min(1, x)); }
     private static Bitmap capture(long physical, int width, int height) throws Exception {
@@ -154,7 +165,8 @@ final class BlackGradientRenderer {
             finally { layer.release(); layer = null; }
         }
         if (snapshot != null) { snapshot.recycle(); snapshot = null; }
-        requested = false; identity = ""; lastAlpha = -1; lastVisibility = -1;
+        requested = false; identity = ""; lastAlpha = -1; lastVisibility = -1; lastLeft = -1;
+        coverProgress = 0; progressTick = 0;
     }
     void close() { closed = true; clear(); captureThread.shutdownNow(); }
 }

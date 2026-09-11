@@ -54,7 +54,7 @@ class MainActivity : Activity() {
             setOnCheckedChangeListener { _, checked -> app.setV2(checked) }
         }
         root.addView(mode)
-        label("V2: 커버는 움직임 시작 시 한 장을 캡처하고 오른쪽이 점점 어두워집니다. 내부는 왼쪽 절반의 검은 그라디언트가 펼칠수록 사라집니다. 끄면 V1 블러로 돌아갑니다.", 14f)
+        label("V2: 커버는 움직임 시작 시 한 장을 캡처하고 검은 그라디언트가 오른쪽에서 들어왔다가 펼칠수록 오른쪽 밖으로 이동하며 사라집니다. 캡처도 실제 화면으로 디졸브합니다. 내부는 왼쪽 절반의 검은 그라디언트가 펼칠수록 사라집니다. 끄면 V1 블러로 돌아갑니다.", 14f)
         label("캡처는 기기 메모리에만 잠시 유지하며 저장·전송하지 않습니다. 잠금 화면은 캡처 없이 검은 그라디언트만 표시합니다. V2는 기기 검증 전인 실험 기능입니다.", 14f)
         val strength = label("효과 강도 · ${app.intensity}%")
         root.addView(SeekBar(this).apply {

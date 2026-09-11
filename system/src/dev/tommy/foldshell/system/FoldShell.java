@@ -167,7 +167,8 @@ public final class FoldShell implements SensorEventListener, DisplayManager.Disp
                 blackRenderer.render(String.valueOf(info.getClass().getField("uniqueId").get(info)) + "/" + motion.sequence() + "/rotation=" + value(info, "rotation"),
                         info.getClass().getField("address").get(info), value(info, "logicalWidth"),
                         value(info, "logicalHeight"), value(info, "layerStack"), inner(info), !keyguard.isKeyguardLocked(),
-                        rendered * intensity, motion.visibility(now));
+                        rendered * intensity, motion.visibility(now),
+                        motion.direction() == FoldMotion.Direction.OPENING, motion.coverProgress(now));
             } else if (radius > 0) render(info, radius);
             else destroySurface();
             scheduled = true;

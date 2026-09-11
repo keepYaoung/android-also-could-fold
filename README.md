@@ -13,7 +13,7 @@ client. Version 0.4.0 adds **V2: cover snapshot + black gradient**, with the ear
 
 | Mode | Cover display | Inner display |
 | --- | --- | --- |
-| **V2 · default, experimental** | Takes one in-memory snapshot at motion onset; a black gradient grows stronger toward the right as opening progresses | A black gradient over the live left half fades as the device opens, and deepens as it closes |
+| **V2 · default, experimental** | Takes one in-memory snapshot at motion onset; a black gradient fades in from the right, then moves out to the right and dissolves as opening progresses; the snapshot dissolves into the live screen | A black gradient over the live left half fades as the device opens, and deepens as it closes |
 | **V1 · live blur** | Right-heavy blur during opening | Left-half blur, strongest at the outside edge |
 
 Turn off **V2 · capture + black gradient** (`V2 · 캡처 + 블랙 그라디언트`) in the
@@ -60,7 +60,7 @@ is interactive; long-term battery impact has not been measured.
 | Cover sensitivity adjustment in 0.3.1 | JVM tests passed; physical feedback pending |
 | App-owned wireless pairing, USB independence and reboot recovery | Not yet verified end to end |
 
-See [the 0.4.1 verification record](docs/V2_VALIDATION.md) for fixes and remaining
+See [the 0.4.2 verification record](docs/V2_VALIDATION.md) for fixes and remaining
 physical checks.
 
 Choose the **temporary USB trial** below for a ten-minute test, or the
@@ -121,7 +121,7 @@ For ongoing use and an intensity control UI, use the app setup below.
 [AGENTS.md](AGENTS.md) contains the agent workflow and user communication guidance
 (in Korean).
 
-## Single-app setup (0.4.1)
+## Single-app setup (0.4.2)
 
 **Shizuku is no longer required.** This APK includes local wireless ADB pairing,
 engine startup, and reconnection. One UI is preserved, and the V1 blur remains
