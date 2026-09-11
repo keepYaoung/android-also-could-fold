@@ -9,6 +9,8 @@ Fold. It keeps One UI and controls the compositor through a built-in local ADB
 client. Version 0.4.0 adds **V2: cover snapshot + black gradient**, with the earlier
 **V1 live blur** available through the in-app switch.
 
+The folding animation in this project was inspired by [this post on r/GalaxyFold](https://www.reddit.com/r/GalaxyFold/comments/1wcacld/tried_to_recreate_the_iphone_duo_animation_on_my/). Thanks to the original creator for the inspiration.
+
 ## Effects
 
 | Mode | Cover display | Inner display |

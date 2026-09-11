@@ -9,6 +9,8 @@ One UI를 유지하면서 내장 로컬 ADB 클라이언트로 compositor를 제
 0.4.0에는 **V2: 커버 캡처 + 블랙 그라디언트**를 추가했으며, 앱의 스위치로
 기존 **V1 실시간 블러**를 선택할 수 있습니다.
 
+이 프로젝트의 접힘·펼침 애니메이션은 [r/GalaxyFold의 이 게시물](https://www.reddit.com/r/GalaxyFold/comments/1wcacld/tried_to_recreate_the_iphone_duo_animation_on_my/)에서 영감을 받았습니다. 영감을 준 원작자에게 감사드립니다.
+
 ## 동작
 
 | 모드 | 커버 화면 | 내부 화면 |
