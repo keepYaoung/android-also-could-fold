@@ -179,6 +179,17 @@ The ADB private key is encrypted using Android Keystore and excluded from backup
 See [the integrated connection design](docs/LOCAL_ADB_APP.md) for implementation
 and verification details.
 
+## To Samsung and Android device manufacturers
+
+We respect the manufacturers who move quickly and bring advanced technology to
+the world. Yet even with everything you do well, there is still much to improve
+in how these devices feel to use.
+
+Give designers and engineers more authority to shape the experience. Make room
+for a more emotional approach to design: the motion, transitions, and small
+details that make everyday interactions feel natural and satisfying. We hope
+the care put into the experience will match the ambition of the technology.
+
 ## License
 
 [MIT](LICENSE) · Copyright © 2026 keepYaoung.
