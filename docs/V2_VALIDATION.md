@@ -1,4 +1,4 @@
-# V2 verification record — 0.4.11
+# V2 verification record — 0.4.12
 
 ## Completed locally
 
@@ -271,3 +271,16 @@ center, and full release. Physical appearance/performance confirmation is pendin
 For 0.4.11, JVM/DEX tests, APK assembly and Android lint passed. Installation
 succeeded and a new 600-second USB trial reached READY. Edge appearance and
 performance still need physical confirmation.
+
+## 0.4.12 anti-aliased perspective outline
+
+The perspective snapshot now draws as an anti-aliased Path filled with a filtered
+BitmapShader, using the same homography for texture mapping. This explicitly
+rasterizes edge coverage rather than relying on transformed drawBitmap filtering
+for the polygon boundary. The shader is reused per snapshot and detached before
+bitmap recycling. Existing live-mask path AA, geometry, blur strength and capture
+policy remain unchanged. Device visual confirmation is pending.
+
+For 0.4.12, JVM/DEX tests, APK assembly and Android lint passed. Installation
+succeeded and a fresh 600-second USB trial reached READY. Rasterized edge quality
+has not yet been visually confirmed on the device.

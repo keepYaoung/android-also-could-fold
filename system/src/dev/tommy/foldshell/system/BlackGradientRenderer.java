@@ -33,6 +33,9 @@ final class BlackGradientRenderer {
     private float lastProgress = -1;
     private int diagnosticStep = -1;
     private final Matrix perspective = new Matrix();
+    private BitmapShader snapshotShader;
+    private final Path snapshotOutline = new Path();
+    private final Paint snapshotPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
     private final float[] sourceCorners = new float[8], targetCorners = new float[8];
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
 
@@ -153,10 +156,23 @@ final class BlackGradientRenderer {
                         }
                         if (!perspective.setPolyToPoly(sourceCorners, 0, targetCorners, 0, 4))
                             throw new IllegalStateException("V2 invalid cover perspective");
-                        canvas.concat(perspective);
-                        paint.setAlpha(inner ? 255 : Math.round(255 * CoverReveal.snapshot(coverProgress)));
+                        if (snapshotShader == null)
+                            snapshotShader = new BitmapShader(snapshot, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP);
+                        snapshotShader.setLocalMatrix(perspective);
+                        snapshotOutline.reset();
+                        snapshotOutline.moveTo(targetCorners[0], targetCorners[1]);
+                        for (int i = 2; i < 8; i += 2)
+                            snapshotOutline.lineTo(targetCorners[i], targetCorners[i + 1]);
+                        snapshotOutline.close();
+                        // drawBitmap filtering smooths texels but does not guarantee
+                        // coverage AA on a transformed outer edge. Rasterize an AA
+                        // path instead, with the same perspective in its bitmap shader.
+                        snapshotPaint.setShader(snapshotShader);
+                        snapshotPaint.setAlpha(inner ? 255 : Math.round(255 * CoverReveal.snapshot(coverProgress)));
+                        canvas.drawPath(snapshotOutline, snapshotPaint);
+                    } else {
+                        canvas.drawBitmap(snapshot, new Rect(0, 0, pane, height), new Rect(0, 0, pane, height), paint);
                     }
-                    canvas.drawBitmap(snapshot, new Rect(0, 0, pane, height), new Rect(0, 0, pane, height), paint);
                 } finally { canvas.restoreToCount(saved); }
             }
             if (snapshot == null && captureUnavailable) {
@@ -244,6 +260,7 @@ final class BlackGradientRenderer {
             } catch (Exception error) { System.out.println("V2 cleanup=" + error.getClass().getSimpleName()); }
             finally { layer.release(); layer = null; }
         }
+        snapshotPaint.setShader(null); snapshotShader = null; snapshotOutline.reset();
         if (snapshot != null) { snapshot.recycle(); snapshot = null; }
         requested = false; captureUnavailable = false; identity = ""; lastAlpha = -1; lastVisibility = -1; lastLeft = -1;
         coverProgress = 0; progressTick = 0; flattenStart = -1; lastProgress = -1; diagnosticStep = -1;
