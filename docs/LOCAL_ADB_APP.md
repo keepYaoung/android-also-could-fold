@@ -1,4 +1,4 @@
-# Integrated local ADB app (0.3.0)
+# Integrated local ADB app (0.3.2)
 
 The APK owns pairing, connection monitoring and the existing system blur engine.
 Shizuku is no longer a runtime dependency. Its previous implementation is archived
@@ -31,7 +31,9 @@ under `legacy/shizuku/`; `docs/SHIZUKU_APP.md` describes the old release.
 
 Build/lint and the existing JVM motion suite pass. The identity instrumentation test
 passed on SM-F966N / Android 16, checking reload stability, encrypted storage and
-tamper rejection. To run it on a device:
+tamper rejection. Run this before setting up everyday use: the Gradle device-test
+run removed the target APK in our test environment, requiring reinstallation.
+Do not assume this command preserves an existing installation or pairing identity.
 
 ```sh
 ./gradlew :app:connectedDebugAndroidTest

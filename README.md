@@ -5,8 +5,8 @@
 **Keep One UI. Make folding and unfolding feel smoother.**
 
 An experimental Android app that applies system blur during physical fold and
-unfold transitions on Galaxy Z Fold. It controls the compositor through the app's built-in local
-ADB client, working over the home screen, apps, and lock screen without screen
+unfold transitions on Galaxy Z Fold. It controls the compositor through the app's
+built-in local ADB client, working over the home screen, apps, and lock screen without screen
 capture or replacing the launcher.
 
 ## Features
@@ -21,8 +21,8 @@ capture or replacing the launcher.
 
 ## Compatibility and limitations
 
-Currently tested on **Galaxy Z Fold7 SM-F966N / Android 16**. Execution is blocked
-on other models. The engine depends on Samsung's private SurfaceControl APIs, so
+The blur engine has been tested on **Galaxy Z Fold7 SM-F966N / Android 16**.
+Execution is blocked on other models; other Fold7 variants are not yet supported. The engine depends on Samsung's private SurfaceControl APIs, so
 compatibility needs to be checked after One UI updates.
 
 On this device, the public hinge sensor mainly reports **0 / 90 / 180 degrees**.
@@ -35,6 +35,21 @@ Early motion is inferred from vendor event timestamps in `dumpsys sensorservice`
 The engine does not read hidden continuous angle values. Very slow movement and
 small reversals may be missed. Diagnostic polling runs at 4 Hz while the screen
 is interactive; long-term battery impact has not been measured.
+
+## Verification status
+
+| Area | Status |
+| --- | --- |
+| Blur on cover, inner display and awake lock screen | Physically confirmed with the earlier engine setup |
+| Build, lint and JVM motion regressions | Passed |
+| Encrypted identity storage, reload and tamper rejection | Passed on Fold7 |
+| Dedicated pairing notification in 0.3.2 | Registration confirmed on-device; completed code entry not yet confirmed |
+| Cover sensitivity adjustment in 0.3.1 | JVM tests passed; physical feedback pending |
+| App-owned wireless pairing, USB independence and reboot recovery | Not yet verified end to end |
+
+Choose the **temporary USB trial** below for a ten-minute test, or the
+[single-app setup](#single-app-setup-032) for saved settings and wireless connection
+attempts. Neither mode requires root.
 
 ## Try it without installing an app
 
@@ -94,13 +109,13 @@ For ongoing use and an intensity control UI, use the app setup below.
 
 **Shizuku is no longer required.** This APK includes local wireless ADB pairing,
 engine startup, and reconnection. The existing blur engine and One UI behavior
-are preserved. The new connection path is experimental: build and lint pass,
-and encrypted-identity tests pass on the Fold7, but app-owned wireless pairing,
-USB removal, and reboot recovery are not yet verified.
+are preserved. The new connection path remains experimental; see the verification
+status above before relying on it for everyday use.
 
 1. If upgrading from the Shizuku version, **turn off its effect before installing**
    the new APK. Stop any standalone trial too. The engines share a lock.
-2. Install the APK, open **Fold Transition**, and allow notifications.
+2. [Build the debug APK](#build-and-verification) and install it, then open
+   **Fold Transition** and allow notifications.
 3. Connect to a trusted Wi-Fi network and enable **Developer options → Wireless debugging**.
 4. Tap **Initial connection setup** (`최초 연결 설정`) in this app. Open Android's
    **Pair device with pairing code**, keep that dialog open, then enter its six-digit
@@ -109,13 +124,30 @@ USB removal, and reboot recovery are not yet verified.
    Stop using **Disable effect** (`효과 끄기`) or the notification's stop action.
 
 The pairing notification stays available for ten minutes. Expand **Fold Transition
-initial connection** to reveal **Enter code**. If it has expired or an APK update
+initial connection** (`Fold Transition 최초 연결`) to reveal **Enter code**
+(`코드 입력`). If it has expired or an APK update
 interrupted setup, tap **Initial connection setup** again.
 
-The UI is currently Korean. If discovery or notifications are unavailable, use
+The UI is currently Korean. If pairing-port discovery or notifications are unavailable, use
 split screen to keep Android's code dialog open while entering its pairing port
 and code through **Enter port and code manually** (`포트와 코드 직접 입력`). The
 pairing port differs from the connection port on the main Wireless debugging page.
+Manual entry covers **pairing only**: engine startup still needs automatic discovery
+of this phone's connection port. There is no manual connection-port field yet.
+
+### If setup gets stuck
+
+- **No code-entry notification:** tap **Initial connection setup** in Fold Transition
+  before opening Android settings. Check that both app notifications and its
+  **Initial connection · Enter code** (`최초 연결 · 코드 입력`) notification category
+  are allowed. Expand the pairing notification, rather than the ongoing effect notification.
+- **Invalid port/code or pairing failure:** keep the Android code dialog open and use
+  its current six-digit code and pairing port. Reopening that dialog can change both.
+- **Paired, but waiting for wireless debugging:** check Wi-Fi and wireless debugging.
+  Pairing success alone does not mean the blur engine is running. The app must show
+  **Running · app connection** (`실행 중 · 앱 자체 연결`).
+- **Another engine is running:** stop the previous app effect or standalone trial,
+  then disable and re-enable this app's effect. Do not delete its lock file.
 
 The first system approval remains necessary; packaging cannot grant shell privileges
 by itself. This app stores its own encrypted ADB identity and reuses it on reconnect.
@@ -131,10 +163,12 @@ effect. A Samsung ADB restart can interrupt the engine; the app attempts to reco
 with its saved identity while wireless debugging remains available. This is not a
 promise of uninterrupted animation or permanent system installation.
 
-The foreground service checks the engine every five seconds and retries connection
-failures with a delay of up to 30 seconds. Engine errors remain visible until you
+The app checks the engine on an approximately five-second schedule. Connection
+failures use a retry delay capped at 30 seconds; discovery and connection attempts
+can add time, so this is not a maximum recovery time. Engine errors remain visible until you
 turn the effect off and on. Closing the activity leaves the service running. If the
-connection ends, the shell engine cleans up; a 45-second watchdog is a fallback.
+connection ends, the shell engine is designed to clean up; a watchdog checks for
+45 seconds without requests at five-second intervals as a fallback.
 
 Enabled state and intensity survive restarts. Boot and app-update receivers attempt
 to restore the service, but **this version does not turn wireless debugging on**.
@@ -158,7 +192,13 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 The Python tool supports `JAVA_HOME` and `ANDROID_SDK_ROOT`. On macOS, it defaults
 to the Android Studio JDK and standard Android SDK path. The debug APK uses a
-development signing key; release APKs require separate signing.
+development signing key; release APKs require separate signing. To update an existing
+installation with `adb install -r`, keep the same signing key. A differently signed
+APK cannot update it in place; uninstalling would remove app data and the saved
+pairing identity.
+
+The device identity test is separate from the local build and lint checks; see
+[the validation notes](docs/LOCAL_ADB_APP.md#validation) before running it.
 
 ## Repository layout
 
@@ -167,6 +207,7 @@ development signing key; release APKs require separate signing.
 | `app/` | Settings UI, local ADB pairing and connection, foreground service, recovery |
 | `system/` | Shared compositor engine, fold state machine, gradients, JVM tests |
 | `tools/` | Standalone ADB trials and sensor diagnostics |
+| `third_party/` | Vendored local ADB library, provenance and license texts |
 | `legacy/` | Earlier screen capture and Shizuku implementations, excluded from the build |
 | `docs/` | Device findings and implementation notes |
 
