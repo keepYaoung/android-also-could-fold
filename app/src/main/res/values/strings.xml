@@ -58,7 +58,7 @@
     <string name="ob_wifi_done">Wireless debugging is on</string>
     <string name="ob_wifi_todo">Still off</string>
     <string name="ob_pair_title">Pair once</string>
-    <string name="ob_pair_body">In the Wireless debugging screen, open “Pair device with pairing code”. Keep that dialog open, pull down the notification shade and enter the 6-digit code in the Fold Transition notification. The same key is reused afterwards.</string>
+    <string name="ob_pair_body">In the Wireless debugging screen, open “Pair device with pairing code”. Keep that dialog open, pull down the notification shade and type only the 6-digit code into the Fold Transition notification; the port is detected automatically. Done once, the key is reused.</string>
     <string name="ob_pair_action">Start pairing</string>
     <string name="ob_pair_done">Paired</string>
     <string name="ob_pair_todo">Not paired yet</string>
@@ -91,4 +91,10 @@
     <string name="msg_connecting">Connecting to the engine</string>
     <string name="msg_running">Running · app connection</string>
     <string name="msg_engine_error">Engine error · turn the effect off and on to retry</string>
+    <string name="why_title">How this is used</string>
+    <string name="ob_notif_why">Used for two things: the code input field inside the pairing notification, so you can type the 6-digit code without closing the Settings dialog, and the running-status notification with a Turn off button. Optional: you can enter the port and code manually instead and turn the effect off from the app.</string>
+    <string name="ob_dev_why">Wireless debugging lives only inside Developer options, so it has to be enabled once. The app reads its on/off state and changes nothing else there.</string>
+    <string name="ob_wifi_why">This is how the app gets the shell-level access needed to draw on the system compositor: it connects to this phone’s own ADB over loopback (127.0.0.1) and never to any other device. Wi-Fi is required only because Android starts wireless debugging exclusively on a Wi-Fi network; no internet is used. The fold effect itself needs no network at all.</string>
+    <string name="ob_pair_why">Android 11 and later requires every ADB client, including this app, to be paired once before it may connect; there is no way around it without root. The app finds the pairing port automatically, so only the 6-digit code is needed. The key is stored encrypted and reused, so this is a one-time step unless you clear app data or revoke debugging authorizations.</string>
+    <string name="onboarding_skip_notif">Skip, I’ll enter the code manually</string>
 </resources>

@@ -16,7 +16,7 @@ import android.widget.*
 
 /** One requirement per page. Every page re-checks its state each second and after returning from Settings. */
 class OnboardingActivity : Activity() {
-    class Step(val key: String, val icon: String, val label: Int, val title: Int, val body: Int, val action: Int,
+    class Step(val key: String, val icon: String, val label: Int, val title: Int, val body: Int, val why: Int, val action: Int,
                val doneText: Int, val todoText: Int, val done: () -> Boolean)
     companion object {
         const val EXTRA_STEP = "step"
@@ -24,13 +24,13 @@ class OnboardingActivity : Activity() {
             context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
         fun steps(app: FoldApplication) = listOf(
             Step("notifications", "🔔", R.string.step_notifications, R.string.ob_notif_title, R.string.ob_notif_body,
-                R.string.ob_notif_action, R.string.ob_notif_done, R.string.ob_notif_todo) { notificationsGranted(app) },
+                R.string.ob_notif_why, R.string.ob_notif_action, R.string.ob_notif_done, R.string.ob_notif_todo) { notificationsGranted(app) },
             Step("developer", "🛠️", R.string.step_developer, R.string.ob_dev_title, R.string.ob_dev_body,
-                R.string.ob_dev_action, R.string.ob_dev_done, R.string.ob_dev_todo) { app.developerOptionsEnabled },
+                R.string.ob_dev_why, R.string.ob_dev_action, R.string.ob_dev_done, R.string.ob_dev_todo) { app.developerOptionsEnabled },
             Step("wireless", "📶", R.string.step_wireless, R.string.ob_wifi_title, R.string.ob_wifi_body,
-                R.string.ob_wifi_action, R.string.ob_wifi_done, R.string.ob_wifi_todo) { app.wirelessDebuggingEnabled },
+                R.string.ob_wifi_why, R.string.ob_wifi_action, R.string.ob_wifi_done, R.string.ob_wifi_todo) { app.wirelessDebuggingEnabled },
             Step("pairing", "🔗", R.string.step_pairing, R.string.ob_pair_title, R.string.ob_pair_body,
-                R.string.ob_pair_action, R.string.ob_pair_done, R.string.ob_pair_todo) { app.paired },
+                R.string.ob_pair_why, R.string.ob_pair_action, R.string.ob_pair_done, R.string.ob_pair_todo) { app.paired },
         )
         fun firstIncomplete(app: FoldApplication): Int {
             val all = steps(app)
@@ -71,6 +71,7 @@ class OnboardingActivity : Activity() {
     private lateinit var title: TextView
     private lateinit var body: TextView
     private lateinit var status: TextView
+    private lateinit var why: TextView
     private lateinit var action: Button
     private lateinit var alt: Button
     private lateinit var next: Button
@@ -87,7 +88,7 @@ class OnboardingActivity : Activity() {
             view.setPadding(view.paddingLeft, bars.top, view.paddingRight, bars.bottom); insets
         }
         dots = findViewById(R.id.dots); icon = findViewById(R.id.icon); title = findViewById(R.id.title)
-        body = findViewById(R.id.body); status = findViewById(R.id.status)
+        body = findViewById(R.id.body); status = findViewById(R.id.status); why = findViewById(R.id.why)
         action = findViewById(R.id.action); alt = findViewById(R.id.alt); next = findViewById(R.id.next); skip = findViewById(R.id.skip)
         findViewById<Button>(R.id.lang).apply { text = Lang.label(this@OnboardingActivity); setOnClickListener { Lang.pick(this@OnboardingActivity) } }
         val density = resources.displayMetrics.density
@@ -100,7 +101,7 @@ class OnboardingActivity : Activity() {
         action.setOnClickListener { runAction() }
         alt.setOnClickListener { manualPairing(this, app) }
         next.setOnClickListener { if (index >= steps.size - 1) finishFlow() else { index++; render() } }
-        skip.setOnClickListener { finishFlow() }
+        skip.setOnClickListener { if (steps[index].key == "notifications") { index++; render() } else finishFlow() }
         render()
     }
     override fun onSaveInstanceState(outState: Bundle) { super.onSaveInstanceState(outState); outState.putInt(EXTRA_STEP, index) }
@@ -111,14 +112,15 @@ class OnboardingActivity : Activity() {
     private fun render() {
         val step = steps[index]; val done = step.done()
         for (i in 0 until dots.childCount) dots.getChildAt(i).setBackgroundResource(if (i <= index) R.drawable.bg_dot_active else R.drawable.bg_dot)
-        icon.text = step.icon; setTitle(step.title); title.setText(step.title); body.setText(step.body)
+        icon.text = step.icon; setTitle(step.title); title.setText(step.title); body.setText(step.body); why.setText(step.why)
         status.text = (if (done) "✅  " else "⏳  ") + getString(if (done) step.doneText else step.todoText)
         action.setText(step.action); action.visibility = if (done) View.GONE else View.VISIBLE
         next.visibility = if (done) View.VISIBLE else View.GONE
         next.setText(if (index >= steps.size - 1) R.string.onboarding_start else R.string.onboarding_next)
         alt.setText(R.string.manual_pairing)
         alt.visibility = if (step.key == "pairing" && !done) View.VISIBLE else View.GONE
-        skip.visibility = if (done || index == 0) View.GONE else View.VISIBLE
+        skip.setText(if (step.key == "notifications") R.string.onboarding_skip_notif else R.string.onboarding_skip)
+        skip.visibility = if (done) View.GONE else View.VISIBLE
     }
     private fun runAction() {
         when (steps[index].key) {

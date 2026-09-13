@@ -58,7 +58,7 @@
     <string name="ob_wifi_done">무선 디버깅이 켜져 있어요</string>
     <string name="ob_wifi_todo">아직 꺼져 있어요</string>
     <string name="ob_pair_title">한 번만 연결해주세요</string>
-    <string name="ob_pair_body">무선 디버깅 화면에서 ‘페어링 코드로 기기 페어링’을 열어주세요. 그 창을 닫지 말고 알림창을 내려 Fold Transition 알림에 6자리 코드를 입력하면 끝이에요. 이후엔 같은 키를 다시 써요.</string>
+    <string name="ob_pair_body">무선 디버깅 화면에서 ‘페어링 코드로 기기 페어링’을 열어주세요. 그 창을 닫지 말고 알림창을 내려 Fold Transition 알림에 6자리 코드만 입력하면 끝이에요. 포트는 자동으로 찾아요. 한 번만 하면 같은 키를 계속 써요.</string>
     <string name="ob_pair_action">페어링 시작</string>
     <string name="ob_pair_done">연결이 완료됐어요</string>
     <string name="ob_pair_todo">아직 연결 전이에요</string>
@@ -91,4 +91,10 @@
     <string name="msg_connecting">엔진 연결 중</string>
     <string name="msg_running">실행 중 · 앱 자체 연결</string>
     <string name="msg_engine_error">엔진 오류 · 효과를 껐다 켜서 다시 시도해주세요</string>
+    <string name="why_title">어디에 쓰이나요</string>
+    <string name="ob_notif_why">두 곳에 쓰여요. 페어링 알림 안의 코드 입력칸(설정의 코드 창을 닫지 않고 6자리를 입력하기 위해)과, ‘끄기’ 버튼이 달린 실행 상태 알림이에요. 필수는 아니에요. 포트와 코드를 직접 입력하고, 효과는 앱에서 끌 수 있어요.</string>
+    <string name="ob_dev_why">무선 디버깅 스위치가 개발자 옵션 안에만 있어서 한 번 켜야 해요. 앱은 켜짐 여부만 읽고 다른 설정은 건드리지 않아요.</string>
+    <string name="ob_wifi_why">시스템 컴포지터에 그리려면 shell 권한이 필요한데, 앱은 이 폰 자신의 ADB에 루프백(127.0.0.1)으로 접속해서 그 권한을 얻어요. 다른 기기에는 절대 연결하지 않아요. Wi-Fi가 필요한 이유는 Android가 무선 디버깅을 Wi-Fi 네트워크에서만 켜기 때문이고, 인터넷은 쓰지 않아요. 접힘 효과 자체는 네트워크가 전혀 필요 없어요.</string>
+    <string name="ob_pair_why">Android 11 이상은 이 앱을 포함한 모든 ADB 클라이언트가 접속 전에 한 번 페어링하도록 강제해요. 루팅 없이는 우회할 방법이 없어요. 포트는 앱이 자동으로 찾으니 6자리 코드만 넣으면 돼요. 키는 암호화해 저장하고 재사용하므로, 앱 데이터를 지우거나 디버깅 승인을 취소하지 않는 한 한 번만 하면 돼요.</string>
+    <string name="onboarding_skip_notif">건너뛰고 코드는 직접 입력할게요</string>
 </resources>

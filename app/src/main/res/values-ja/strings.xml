@@ -58,7 +58,7 @@
     <string name="ob_wifi_done">ワイヤレスデバッグはオンです</string>
     <string name="ob_wifi_todo">まだオフです</string>
     <string name="ob_pair_title">一度だけ接続してください</string>
-    <string name="ob_pair_body">ワイヤレスデバッグ画面で「ペア設定コードによるデバイスのペア設定」を開きます。その画面を閉じずに通知シェードを下ろし、Fold Transition の通知に6桁のコードを入力すれば完了です。以降は同じキーを再利用します。</string>
+    <string name="ob_pair_body">ワイヤレスデバッグ画面で「ペア設定コードによるデバイスのペア設定」を開きます。その画面を閉じずに通知シェードを下ろし、Fold Transition の通知に6桁のコードだけ入力すれば完了です。ポートは自動検出されます。一度行えば同じキーを再利用します。</string>
     <string name="ob_pair_action">ペア設定を開始</string>
     <string name="ob_pair_done">接続済みです</string>
     <string name="ob_pair_todo">まだ接続されていません</string>
@@ -91,4 +91,10 @@
     <string name="msg_connecting">エンジンに接続中</string>
     <string name="msg_running">実行中 · アプリ自身の接続</string>
     <string name="msg_engine_error">エンジンエラー · エフェクトをオフ→オンで再試行してください</string>
+    <string name="why_title">何に使われますか</string>
+    <string name="ob_notif_why">2か所で使います。ペア設定通知内のコード入力欄（設定のコード画面を閉じずに6桁を入力するため）と、「オフ」ボタン付きの実行状態通知です。必須ではありません。ポートとコードは手動入力でき、エフェクトはアプリからオフにできます。</string>
+    <string name="ob_dev_why">ワイヤレスデバッグのスイッチは開発者向けオプションの中にしかないため、一度オンにする必要があります。アプリはオン/オフの状態を読むだけで、他の設定は変更しません。</string>
+    <string name="ob_wifi_why">システムコンポジターに描画するには shell 権限が必要で、アプリはこの端末自身の ADB にループバック（127.0.0.1）で接続してその権限を得ます。他の端末には一切接続しません。Wi-Fi が必要なのは Android がワイヤレスデバッグを Wi-Fi ネットワーク上でしか起動しないためで、インターネットは使いません。折りたたみエフェクト自体にネットワークは不要です。</string>
+    <string name="ob_pair_why">Android 11 以降は、このアプリを含むすべての ADB クライアントに接続前の一度のペア設定を求めます。root なしで回避する方法はありません。ポートはアプリが自動検出するので、必要なのは6桁のコードだけです。キーは暗号化して保存・再利用するため、アプリデータを消去したりデバッグ承認を取り消したりしない限り一度きりです。</string>
+    <string name="onboarding_skip_notif">スキップしてコードは手動入力する</string>
 </resources>
