@@ -101,6 +101,7 @@
         <include android:id="@+id/row_v2" layout="@layout/row_status" />
         <include android:id="@+id/row_v3" layout="@layout/row_status" />
         <include android:id="@+id/row_v4" layout="@layout/row_status" />
+        <include android:id="@+id/row_v5" layout="@layout/row_status" />
 
         <TextView
             android:id="@+id/mode_description"
@@ -195,6 +196,7 @@
             android:text="@string/section_etc" />
 
         <include android:id="@+id/row_setup_again" layout="@layout/row_status" />
+        <include android:id="@+id/row_share_log" layout="@layout/row_status" />
         <include android:id="@+id/row_licenses" layout="@layout/row_status" />
 
         <TextView

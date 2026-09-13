@@ -108,4 +108,10 @@
     <string name="ob_intro_oem_title">삼성과 기기 제조사 관계자분들께</string>
     <string name="ob_intro_oem_body">이 기기를 만드는 분이라면 부탁드립니다. 기기의 사용 감각을 결정할 권한을 디자이너와 엔지니어에게 더 위임해 주세요. 그리고 힌지 각도 데이터를 열어 주세요. 지연이 낮은 공개 연속 힌지 각도가 있다면, 서드파티 개발자도 추정이 아닌 정확한 접힘 전환을 만들 수 있습니다.</string>
     <string name="ob_intro_cta">알겠어요, 계속하기</string>
+    <string name="share_log">엔진 로그 공유</string>
+    <string name="share_log_sub">모델·Android 버전·상태·최근 엔진 로그를 보내요. 화면 내용은 없어요.</string>
+    <string name="share_log_copied">로그를 클립보드에 복사했어요</string>
+    <string name="mode_v5">V5 · 늘림 + 그라디언트 블러</string>
+    <string name="mode_v5_sub">캡처 화면이 그늘 아래에서 바깥으로 늘어남</string>
+    <string name="mode_v5_desc">위에서부터 그라디언트 블러, 검은 그라디언트 그늘, 맨 아래 메모리 캡처 순서예요. 캡처는 원근 후퇴 대신 회전량에 따라 최대 25%까지 가로로 늘어나요. 커버에서는 왼쪽 변을 고정하고 오른쪽으로, 내부에서는 왼쪽 절반이 힌지 변을 고정하고 왼쪽으로 늘어나요. 시작 감지·캡처 규칙·해제 타이밍은 V2와 같아요. 실험 기능이에요.</string>
 </resources>

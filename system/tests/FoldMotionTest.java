@@ -76,9 +76,27 @@ public class FoldMotionTest {
         check(missing.secure == -1 && missing.protectedContent == -1,
                 "partial policy resolution never starts configuring a capture");
     }
+    static void testStretch() {
+        float[] q = new float[8];
+        dev.tommy.foldshell.system.CoverReveal.stretchCorners(0, q);
+        check(q[0] == 0 && q[2] == 1 && q[4] == 1 && q[6] == 0, "no motion leaves the cover snapshot at native size");
+        dev.tommy.foldshell.system.CoverReveal.stretchCorners(1, q);
+        check(q[0] == 0 && q[6] == 0 && q[2] == 1.25f && q[4] == 1.25f && q[1] == 0 && q[5] == 1,
+                "cover stretches rightward past the pane with its left edge pinned");
+        dev.tommy.foldshell.system.CoverReveal.innerStretchCorners(1, q);
+        check(q[2] == 1 && q[4] == 1 && Math.abs(q[0] + .25f) < 1e-6 && Math.abs(q[6] + .25f) < 1e-6,
+                "inner left half stretches leftward past the pane with its hinge edge pinned");
+        float previous = 1;
+        for (int i = 1; i <= 10; i++) {
+            float s = dev.tommy.foldshell.system.CoverReveal.stretch(i / 10f);
+            check(s >= previous && s <= 1.25f, "stretch grows with rotation and stays bounded");
+            previous = s;
+        }
+    }
     static void testDeviceSupport() {
         check(dev.tommy.foldshell.system.DeviceSupport.supported("SM-F966N")
                 && dev.tommy.foldshell.system.DeviceSupport.supported("SM-F966B")
+                && dev.tommy.foldshell.system.DeviceSupport.supported("SM-F971B")
                 && dev.tommy.foldshell.system.DeviceSupport.supported("SM-F976N")
                 && dev.tommy.foldshell.system.DeviceSupport.supported("SM-F976U1"),
                 "Fold7 and Fold8 families are allowed");
@@ -95,6 +113,7 @@ public class FoldMotionTest {
         check(parse == dev.tommy.foldshell.system.FoldShell.Mode.MASK
                 && dev.tommy.foldshell.system.FoldShell.Mode.parse("v2") == dev.tommy.foldshell.system.FoldShell.Mode.SNAPSHOT
                 && dev.tommy.foldshell.system.FoldShell.Mode.parse("v4") == dev.tommy.foldshell.system.FoldShell.Mode.HYBRID
+                && dev.tommy.foldshell.system.FoldShell.Mode.parse("v5") == dev.tommy.foldshell.system.FoldShell.Mode.STRETCH
                 && dev.tommy.foldshell.system.FoldShell.Mode.parse("v1") == dev.tommy.foldshell.system.FoldShell.Mode.BLUR
                 && dev.tommy.foldshell.system.FoldShell.Mode.parse(null) == dev.tommy.foldshell.system.FoldShell.Mode.BLUR,
                 "mode strings map to backends, unknown falls back to V1 blur");
@@ -558,7 +577,7 @@ public class FoldMotionTest {
         gentleReverse.reverse(300);
         check(gentleReverse.amount(1200) > 0 && gentleReverse.active(), "V3 reversal release is longer than 700ms");
         check(gentleReverse.amount(1700) == 0 && !gentleReverse.active(), "V3 reversal release completes at 1.4s");
-        testProfile(); testGate(); testCapturePolicy(); testFlatMask(); testDeviceSupport();
+        testProfile(); testGate(); testCapturePolicy(); testFlatMask(); testDeviceSupport(); testStretch();
         System.out.println("FoldMotionTest: PASS");
     }
 }

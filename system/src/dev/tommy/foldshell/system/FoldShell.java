@@ -24,13 +24,15 @@ import java.nio.channels.FileLock;
  * Hidden API failures stop the engine if the firmware changes.
  */
 public final class FoldShell implements SensorEventListener, DisplayManager.DisplayListener {
-    /** Rendering backend. BLUR=V1, SNAPSHOT=V2, MASK=V3, HYBRID=V4 (V2 plane + V3 shade). */
+    /** Rendering backend. BLUR=V1, SNAPSHOT=V2, MASK=V3, HYBRID=V4 (V2 plane + V3 shade),
+     *  STRETCH=V5 (snapshot slides outward horizontally under the shade and blur). */
     public enum Mode {
-        BLUR, SNAPSHOT, MASK, HYBRID;
+        BLUR, SNAPSHOT, MASK, HYBRID, STRETCH;
         public static Mode parse(String value) {
             if ("v2".equals(value)) return SNAPSHOT;
             if ("v3".equals(value)) return MASK;
             if ("v4".equals(value)) return HYBRID;
+            if ("v5".equals(value)) return STRETCH;
             return BLUR;
         }
         public String label() {
@@ -38,11 +40,12 @@ public final class FoldShell implements SensorEventListener, DisplayManager.Disp
                 case SNAPSHOT: return "v2-snapshot-gradient";
                 case MASK: return "v3-flat-mask";
                 case HYBRID: return "v4-snapshot-shade";
+                case STRETCH: return "v5-snapshot-stretch";
                 default: return "compositor-blur";
             }
         }
-        boolean shade() { return this == MASK || this == HYBRID; }
-        boolean snapshot() { return this == SNAPSHOT || this == HYBRID; }
+        boolean shade() { return this == MASK || this == HYBRID || this == STRETCH; }
+        boolean snapshot() { return this == SNAPSHOT || this == HYBRID || this == STRETCH; }
     }
     private static final String NAME = "FoldTransition-SystemBlur";
     /** The blur must sit above everything the effect draws (snapshot, shade, mask). */
@@ -95,7 +98,8 @@ public final class FoldShell implements SensorEventListener, DisplayManager.Disp
     private FoldShell(Context context, Mode mode) throws Exception {
         this.mode = mode;
         motion = new FoldMotion(mode != Mode.BLUR, mode == Mode.MASK);
-        blackRenderer = mode == Mode.BLUR ? null : new BlackGradientRenderer(handler, this::fail, mode == Mode.MASK, mode.shade());
+        blackRenderer = mode == Mode.BLUR ? null
+                : new BlackGradientRenderer(handler, this::fail, mode == Mode.MASK, mode.shade(), mode == Mode.STRETCH);
         sensors = context.getSystemService(SensorManager.class);
         displays = context.getSystemService(DisplayManager.class);
         power = context.getSystemService(PowerManager.class);
@@ -407,8 +411,8 @@ public final class FoldShell implements SensorEventListener, DisplayManager.Disp
             Context system = (Context) activityThread.getMethod("getSystemContext").invoke(thread);
             Context context = system.createPackageContext("com.android.shell", 0);
             java.util.List<String> options = java.util.Arrays.asList(args);
-            Mode mode = options.contains("v4") ? Mode.HYBRID : options.contains("v3") ? Mode.MASK
-                    : options.contains("v2") ? Mode.SNAPSHOT : Mode.BLUR;
+            Mode mode = options.contains("v5") ? Mode.STRETCH : options.contains("v4") ? Mode.HYBRID
+                    : options.contains("v3") ? Mode.MASK : options.contains("v2") ? Mode.SNAPSHOT : Mode.BLUR;
             FoldShell shell = new FoldShell(context, mode);
             shell.extraEdgeBlur = !options.contains("no-edge-blur");
             try { shell.start(seconds * 1000, java.util.Arrays.asList(args).contains("early")); Looper.loop(); }

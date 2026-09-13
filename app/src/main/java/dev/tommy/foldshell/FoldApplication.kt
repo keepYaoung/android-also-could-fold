@@ -19,8 +19,21 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 class FoldApplication : Application() {
-    companion object { val MODES = listOf("v1", "v2", "v3", "v4") }
+    companion object { val MODES = listOf("v1", "v2", "v3", "v4", "v5") }
     val prefs by lazy { getSharedPreferences("fold", MODE_PRIVATE) }
+    /** Last engine lines (timings, angles, layer events; no screen content) for user-initiated sharing. */
+    private val engineLog = ArrayDeque<String>()
+    fun engineLogText(): String = synchronized(engineLog) { engineLog.joinToString("\n") }
+    private fun remember(line: String) = synchronized(engineLog) { engineLog.addLast(line); while (engineLog.size > 400) engineLog.removeFirst() }
+    fun diagnosticReport(context: Context): String = buildString {
+        append("Fold Transition ").append(BuildConfig.VERSION_NAME).append(" (").append(BuildConfig.VERSION_CODE).append(")\n")
+        append("model=").append(android.os.Build.MODEL).append(" device=").append(android.os.Build.DEVICE)
+        append(" android=").append(android.os.Build.VERSION.RELEASE).append(" build=").append(android.os.Build.DISPLAY).append("\n")
+        append("mode=").append(mode).append(" enabled=").append(enabled).append(" paired=").append(paired)
+        append(" wirelessDebugging=").append(wirelessDebuggingEnabled).append(" developerOptions=").append(developerOptionsEnabled).append("\n")
+        append("status=").append(messageText(context).replace('\n', ' ')).append("\n\n")
+        append(engineLogText())
+    }
     val main = Handler(Looper.getMainLooper())
     /** Status shown in the UI: a string resource plus an optional raw detail line from the engine. */
     @Volatile var messageRes = R.string.msg_setup_required; private set
@@ -171,6 +184,7 @@ class FoldApplication : Application() {
         try {
             val manager = adb ?: LocalAdb(this).also { adb = it }
             manager.disconnect()
+            remember("app: connecting 127.0.0.1:" + connectPort + " mode=" + mode)
             if (!manager.connect("127.0.0.1", connectPort)) throw IllegalStateException("ADB unavailable")
             // Source path comes from PackageManager; it is never supplied by a user or mDNS.
             val apk = applicationInfo.sourceDir.replace("'", "'\\''")
@@ -183,7 +197,7 @@ class FoldApplication : Application() {
                         while (true) {
                             val line = reader.readLine() ?: break
                             // Engine diagnostics (timings, angles, layer events; no screen content).
-                            Log.i("FoldEngine", line)
+                            Log.i("FoldEngine", line); remember(line)
                             if (line.startsWith("FOLD ")) io.execute {
                                 if (stream === current) {
                                     lastReply = SystemClock.elapsedRealtime()
@@ -204,7 +218,8 @@ class FoldApplication : Application() {
                     io.execute { if (stream === current) failure(R.string.msg_disconnected) }
                 }
             }, "FoldEngineOutput").apply { isDaemon = true; start() }
-        } catch (_: Exception) {
+        } catch (error: Exception) {
+            remember("app: connect failed " + error.javaClass.simpleName + ": " + error.message)
             connectPort = 0
             failure(R.string.msg_wireless_wait_recheck)
             main.post { discovery.stop(); discovery.start() }

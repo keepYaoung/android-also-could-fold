@@ -108,4 +108,10 @@
     <string name="ob_intro_oem_title">To Samsung and other device makers</string>
     <string name="ob_intro_oem_body">If you work on these devices: please give designers and engineers more authority over how the device feels, and please open up the hinge angle data. A public, continuous hinge angle with low latency would let third-party developers build fold transitions that are accurate instead of estimated.</string>
     <string name="ob_intro_cta">Got it, continue</string>
+    <string name="share_log">Share engine log</string>
+    <string name="share_log_sub">Model, Android version, status and the last engine lines. No screen content.</string>
+    <string name="share_log_copied">Log copied to the clipboard</string>
+    <string name="mode_v5">V5 · Stretch + gradient blur</string>
+    <string name="mode_v5_sub">Snapshot slides outward under the shade</string>
+    <string name="mode_v5_desc">Layers, top to bottom: gradient blur, black gradient shade, and the in-memory snapshot. Instead of receding in perspective, the snapshot stretches horizontally with rotation, up to 25% wider: on the cover it stretches to the right with the left edge pinned, on the inner display the left half stretches to the left with the hinge edge pinned. Same onset, capture rules and release timing as V2. Experimental.</string>
 </resources>

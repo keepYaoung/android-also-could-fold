@@ -18,9 +18,10 @@ The folding animation in this project was inspired by [this post on r/GalaxyFold
 | **V2 · default, experimental** | Takes one in-memory snapshot at motion onset; a black gradient fades in from the right, then moves out to the right and dissolves as opening progresses; the snapshot dissolves into the live screen | The left half is captured; its center/hinge edge stays fixed while the outer left edge recedes when closing and returns when opening |
 | **V1 · live blur** | Right-heavy blur during opening | Left-half blur, strongest at the outside edge |
 | **V4 · snapshot + gradient blur, experimental** | The V2 snapshot plane with the V3 shade on top instead of V2’s linear gradient: the folding-away side darkens with a much wider, darker gradient than V3 (60–100% of the pane, fully black at the edge) and matching blur | Same on the inner left half |
+| **V5 · stretch + gradient blur, experimental** | Blur gradient over a black gradient shade over the snapshot; the snapshot stretches to the right (left edge pinned) up to 25% with rotation instead of receding | The left half stretches to the left with the hinge edge pinned |
 | **V3 · flat gradient blur, experimental** | The live screen stays flat and is never captured; the region folding away, from the right edge inward in proportion to measured gyro rotation, darkens with a black gradient toward the edge and is blurred throughout | Same on the left half, from the outer left edge toward the hinge |
 
-Pick **V1 / V2 / V3 / V4** under **Effect mode** (`효과 방식`) in the app (`run --v4` for a USB trial). Mode changes
+Pick **V1 / V2 / V3 / V4 / V5** under **Effect mode** (`효과 방식`) in the app (`run --v4` or `run --v5` for a USB trial). Mode changes
 restart the engine if enabled. V3 never captures the screen, so lock-screen capture
 limits do not apply; it shares V2's onset detection, gyro depth and idle dissolve.
 There is no solid black block: the darkening region is a gradient, transparent at its
@@ -75,8 +76,10 @@ rotation, panel handoff and physical appearance still need device verification.
 ## Compatibility and limitations
 
 The engine has been tested on **Galaxy Z Fold7 SM-F966N / Android 16**. Since 0.5.0
-the allowlist covers the whole **Fold7 family (SM-F966x)** and the **Galaxy Z Fold8 /
-Fold8 Ultra family (SM-F976x)**; those other models are allowed but **unverified**.
+the allowlist covers the whole **Fold7 family (SM-F966x)**, the **Galaxy Z Fold8 family
+(SM-F971x)** and the **Fold8 Ultra family (SM-F976x)**; those other models are allowed
+but **unverified**. A tester on SM-F971B reached the model check, which is how the
+Fold8 model number was confirmed; the rest of the pipeline on Fold8 is still open.
 Panel sizes are measured at runtime rather than assumed, but the engine depends on
 Samsung's private SurfaceControl and capture APIs, which can differ per firmware, so
 Fold8 needs a physical check before it can be called supported. Other models are
@@ -140,8 +143,8 @@ python3 tools/fold-system.py run --seconds 600 --early
 
 The `run` command builds and tests the engine, transfers its DEX file, and starts
 it. No APK is installed, but an executable file and a lock file are created under
-`/data/local/tmp` on the device. Allowed models are the **SM-F966x** and **SM-F976x**
-families, as noted above.
+`/data/local/tmp` on the device. Allowed models are the **SM-F966x**, **SM-F971x** and
+**SM-F976x** families, as noted above.
 If multiple devices are connected, add `-s SERIAL` to ADB commands and
 `--serial SERIAL` to the Python command.
 

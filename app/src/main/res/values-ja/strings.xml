@@ -108,4 +108,10 @@
     <string name="ob_intro_oem_title">Samsung および端末メーカーの皆さまへ</string>
     <string name="ob_intro_oem_body">この端末に携わる方へお願いです。端末の使い心地を決める権限を、デザイナーとエンジニアにもっと委ねてください。そしてヒンジ角度のデータを公開してください。低遅延で公開された連続ヒンジ角度があれば、サードパーティ開発者も推定ではなく正確な折りたたみトランジションを作れます。</string>
     <string name="ob_intro_cta">わかりました、続ける</string>
+    <string name="share_log">エンジンログを共有</string>
+    <string name="share_log_sub">機種・Android バージョン・状態・直近のエンジンログを送ります。画面の内容は含みません。</string>
+    <string name="share_log_copied">ログをクリップボードにコピーしました</string>
+    <string name="mode_v5">V5 · ストレッチ + グラデーションブラー</string>
+    <string name="mode_v5_sub">キャプチャがシェードの下で外側へ伸びる</string>
+    <string name="mode_v5_desc">上から順にグラデーションブラー、黒のグラデーションシェード、一番下にメモリ内キャプチャです。キャプチャは遠近方向に後退する代わりに、回転量に応じて最大25%まで横に伸びます。カバーでは左辺を固定して右へ、内側では左半分がヒンジ辺を固定して左へ伸びます。検出・キャプチャ規則・解放タイミングは V2 と同じです。実験機能です。</string>
 </resources>

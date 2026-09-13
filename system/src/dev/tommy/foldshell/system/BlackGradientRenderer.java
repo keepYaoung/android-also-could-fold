@@ -16,7 +16,7 @@ import java.util.function.Consumer;
 final class BlackGradientRenderer {
     private final Handler handler;
     private final Consumer<Throwable> failure;
-    private final boolean flatMask, shade;
+    private final boolean flatMask, shade, stretch;
     private final ExecutorService captureThread = Executors.newSingleThreadExecutor(r -> {
         Thread thread = new Thread(r, "FoldSnapshot"); thread.setDaemon(true); return thread;
     });
@@ -45,8 +45,10 @@ final class BlackGradientRenderer {
     BlackGradientRenderer(Handler handler, Consumer<Throwable> failure) { this(handler, failure, false); }
     BlackGradientRenderer(Handler handler, Consumer<Throwable> failure, boolean flatMask) { this(handler, failure, flatMask, flatMask); }
     /** shade: draw the V3 wide deepening gradient instead of V2's linear gradient (V4 = snapshot + shade). */
-    BlackGradientRenderer(Handler handler, Consumer<Throwable> failure, boolean flatMask, boolean shade) {
-        this.handler = handler; this.failure = failure; this.flatMask = flatMask; this.shade = shade;
+    BlackGradientRenderer(Handler handler, Consumer<Throwable> failure, boolean flatMask, boolean shade) { this(handler, failure, flatMask, shade, false); }
+    /** stretch: V5 slides the snapshot outward horizontally instead of receding it in perspective. */
+    BlackGradientRenderer(Handler handler, Consumer<Throwable> failure, boolean flatMask, boolean shade, boolean stretch) {
+        this.handler = handler; this.failure = failure; this.flatMask = flatMask; this.shade = shade; this.stretch = stretch;
     }
     boolean flat() { return flatMask; }
     void render(String display, Object address, int w, int h, int layerStack,
@@ -182,7 +184,10 @@ final class BlackGradientRenderer {
                     if (inner || opening) {
                         canvas.drawColor(Color.BLACK);
                         CoverReveal.corners(0, sourceCorners);
-                        if (inner) CoverReveal.innerCorners(coverProgress, targetCorners);
+                        if (stretch) {
+                            if (inner) CoverReveal.innerStretchCorners(coverProgress, targetCorners);
+                            else CoverReveal.stretchCorners(coverProgress, targetCorners);
+                        } else if (inner) CoverReveal.innerCorners(coverProgress, targetCorners);
                         else CoverReveal.corners(coverProgress, targetCorners);
                         for (int i = 0; i < 8; i += 2) {
                             sourceCorners[i] *= pane; sourceCorners[i + 1] *= height;
@@ -212,7 +217,8 @@ final class BlackGradientRenderer {
             if (snapshot == null && captureUnavailable) {
                 // Redacted/denied lock content stays live; black only the area
                 // outside the projected plane. This masks, rather than warps, it.
-                if (inner) CoverReveal.innerCorners(coverProgress, targetCorners);
+                if (stretch) { CoverReveal.corners(0, targetCorners); } // a stretched plane covers the pane
+                else if (inner) CoverReveal.innerCorners(coverProgress, targetCorners);
                 else CoverReveal.corners(coverProgress, targetCorners);
                 Path outside = new Path();
                 outside.setFillType(Path.FillType.EVEN_ODD);
@@ -246,8 +252,8 @@ final class BlackGradientRenderer {
 
     /** The wide, deepening shade shared by V3 (alone) and V4 (over the V2 plane). Same profile as flatRegions. */
     private void drawShade(Canvas canvas, int pane, float intensity) {
-        // V4 (shade over the snapshot) is far wider and darker than V3's shade alone.
-        boolean wide = shade && !flatMask;
+        // V4 (shade over the perspective snapshot) is far wider and darker; V3 and V5 use the moderate shade.
+        boolean wide = shade && !flatMask && !stretch;
         float reach = CoverReveal.maskReach(coverProgress, wide), strength = CoverReveal.maskStrength(coverProgress);
         int start = Math.round(pane * (inner ? reach : 1 - reach));
         int edgeAlpha = Math.round(255 * clamp((wide ? 1f : .94f) * intensity) * strength);

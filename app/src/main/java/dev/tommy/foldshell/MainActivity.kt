@@ -25,7 +25,8 @@ class MainActivity : Activity() {
         "v1" to Triple(R.string.mode_v1, R.string.mode_v1_sub, R.string.mode_v1_desc),
         "v2" to Triple(R.string.mode_v2, R.string.mode_v2_sub, R.string.mode_v2_desc),
         "v3" to Triple(R.string.mode_v3, R.string.mode_v3_sub, R.string.mode_v3_desc),
-        "v4" to Triple(R.string.mode_v4, R.string.mode_v4_sub, R.string.mode_v4_desc))
+        "v4" to Triple(R.string.mode_v4, R.string.mode_v4_sub, R.string.mode_v4_desc),
+        "v5" to Triple(R.string.mode_v5, R.string.mode_v5_sub, R.string.mode_v5_desc))
 
     override fun attachBaseContext(newBase: Context) { super.attachBaseContext(Lang.wrap(newBase)) }
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -51,7 +52,7 @@ class MainActivity : Activity() {
         }
         saveMode.setOnClickListener { app.setMode(pendingMode); render() }
         modeRows["v1"] = findViewById(R.id.row_v1); modeRows["v2"] = findViewById(R.id.row_v2)
-        modeRows["v3"] = findViewById(R.id.row_v3); modeRows["v4"] = findViewById(R.id.row_v4)
+        modeRows["v3"] = findViewById(R.id.row_v3); modeRows["v4"] = findViewById(R.id.row_v4); modeRows["v5"] = findViewById(R.id.row_v5)
         stepRows += listOf<View>(findViewById(R.id.row_notifications), findViewById(R.id.row_developer),
             findViewById(R.id.row_wireless), findViewById(R.id.row_pairing))
         val seek = findViewById<SeekBar>(R.id.intensity)
@@ -64,6 +65,8 @@ class MainActivity : Activity() {
         findViewById<View>(R.id.manual_pairing).setOnClickListener { OnboardingActivity.manualPairing(this, app) }
         findViewById<View>(R.id.row_setup_again).bindRow("🧭", getString(R.string.setup_again), getString(R.string.setup_again_sub),
             getString(R.string.view), getColor(R.color.text_tertiary)) { openSetup(0) }
+        findViewById<View>(R.id.row_share_log).bindRow("🩺", getString(R.string.share_log), getString(R.string.share_log_sub),
+            getString(R.string.view), getColor(R.color.text_tertiary)) { shareLog() }
         findViewById<View>(R.id.row_licenses).bindRow("📄", getString(R.string.licenses), getString(R.string.licenses_sub),
             getString(R.string.view), getColor(R.color.text_tertiary)) { showLicenses() }
         findViewById<TextView>(R.id.footer).text = getString(R.string.footer, BuildConfig.VERSION_NAME)
@@ -92,6 +95,18 @@ class MainActivity : Activity() {
             val done = steps[i].done()
             stepRows[i].bindRow(steps[i].icon, getString(steps[i].label), getString(if (done) steps[i].doneText else steps[i].todoText),
                 getString(if (done) R.string.done else R.string.set_up), getColor(if (done) R.color.success else R.color.primary)) { openSetup(i + 1) }
+        }
+    }
+    private fun shareLog() {
+        val report = app.diagnosticReport(this)
+        val send = Intent(Intent.ACTION_SEND).setType("text/plain")
+            .putExtra(Intent.EXTRA_SUBJECT, "Fold Transition log · ${android.os.Build.MODEL}")
+            .putExtra(Intent.EXTRA_TEXT, report)
+        try { startActivity(Intent.createChooser(send, getString(R.string.share_log))) }
+        catch (_: Exception) {
+            (getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager)
+                .setPrimaryClip(android.content.ClipData.newPlainText("Fold Transition log", report))
+            Toast.makeText(this, R.string.share_log_copied, Toast.LENGTH_SHORT).show()
         }
     }
     private fun showLicenses() {

@@ -33,6 +33,20 @@ public final class CoverReveal {
         out[4] = 1; out[5] = 1;
         out[6] = x; out[7] = 1 - inset;
     }
+    /** V5: horizontal stretch of the snapshot, up to 25% wider at full depth. Visual calibration. */
+    public static float stretch(float progress) {
+        return 1 + .25f * Math.max(0, Math.min(1, progress));
+    }
+    /** Cover: left edge fixed, right edge pushed past the pane. Ordering TL, TR, BR, BL. */
+    public static void stretchCorners(float progress, float[] out) {
+        float s = stretch(progress);
+        out[0] = 0; out[1] = 0; out[2] = s; out[3] = 0; out[4] = s; out[5] = 1; out[6] = 0; out[7] = 1;
+    }
+    /** Inner left half: hinge edge fixed, outer edge pushed past the left of the pane. */
+    public static void innerStretchCorners(float progress, float[] out) {
+        float x = 1 - stretch(progress);
+        out[0] = x; out[1] = 0; out[2] = 1; out[3] = 0; out[4] = 1; out[5] = 1; out[6] = x; out[7] = 1;
+    }
     /** Amplify measured motion without advancing on elapsed time. */
     public static float motionDepth(float progress) { return motionDepth(progress, 2.5f); }
     public static float motionDepth(float progress, float gain) {
