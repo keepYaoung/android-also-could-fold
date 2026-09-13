@@ -185,8 +185,10 @@ final class BlackGradientRenderer {
                         canvas.drawColor(Color.BLACK);
                         CoverReveal.corners(0, sourceCorners);
                         if (stretch) {
-                            if (inner) CoverReveal.innerStretchCorners(coverProgress, targetCorners);
-                            else CoverReveal.stretchCorners(coverProgress, targetCorners);
+                            // While dissolving, the stretched image also returns to native size.
+                            float p = coverProgress * clamp(visibility);
+                            if (inner) CoverReveal.innerStretchCorners(p, targetCorners);
+                            else CoverReveal.stretchCorners(p, targetCorners);
                         } else if (inner) CoverReveal.innerCorners(coverProgress, targetCorners);
                         else CoverReveal.corners(coverProgress, targetCorners);
                         for (int i = 0; i < 8; i += 2) {
@@ -230,7 +232,7 @@ final class BlackGradientRenderer {
                 canvas.drawPath(outside, paint);
             }
             paint.setAlpha(255);
-            if (shade) drawShade(canvas, pane, intensity);
+            if (shade) drawShade(canvas, pane, intensity, stretch ? coverProgress * clamp(visibility) : coverProgress);
             else {
                 paint.setShader(new LinearGradient(left, 0, !inner && opening ? left + pane * .85f : pane, 0,
                         inner ? Color.argb(alpha, 0, 0, 0) : Color.TRANSPARENT,
@@ -251,10 +253,10 @@ final class BlackGradientRenderer {
     float depthProgress() { return coverProgress; }
 
     /** The wide, deepening shade shared by V3 (alone) and V4 (over the V2 plane). Same profile as flatRegions. */
-    private void drawShade(Canvas canvas, int pane, float intensity) {
+    private void drawShade(Canvas canvas, int pane, float intensity, float progress) {
         // V4 (shade over the perspective snapshot) is far wider and darker; V3 and V5 use the moderate shade.
         boolean wide = shade && !flatMask && !stretch;
-        float reach = CoverReveal.maskReach(coverProgress, wide), strength = CoverReveal.maskStrength(coverProgress);
+        float reach = CoverReveal.maskReach(progress, wide), strength = CoverReveal.maskStrength(progress);
         int start = Math.round(pane * (inner ? reach : 1 - reach));
         int edgeAlpha = Math.round(255 * clamp((wide ? 1f : .94f) * intensity) * strength);
         if (edgeAlpha <= 0) return;
@@ -286,7 +288,7 @@ final class BlackGradientRenderer {
         try {
             canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
             paint.setShader(null); paint.setAlpha(255);
-            drawShade(canvas, pane, intensity);
+            drawShade(canvas, pane, intensity, coverProgress);
         } finally { paint.setShader(null); canvasSurface.unlockCanvasAndPost(canvas); }
         try (SurfaceControl.Transaction t = new SurfaceControl.Transaction()) {
             SurfaceControl.Transaction.class.getMethod("setLayerStack", SurfaceControl.class, int.class).invoke(t, layer, stack);

@@ -81,15 +81,15 @@ public class FoldMotionTest {
         dev.tommy.foldshell.system.CoverReveal.stretchCorners(0, q);
         check(q[0] == 0 && q[2] == 1 && q[4] == 1 && q[6] == 0, "no motion leaves the cover snapshot at native size");
         dev.tommy.foldshell.system.CoverReveal.stretchCorners(1, q);
-        check(q[0] == 0 && q[6] == 0 && q[2] == 1.25f && q[4] == 1.25f && q[1] == 0 && q[5] == 1,
+        check(q[0] == 0 && q[6] == 0 && q[2] == 1.1f && q[4] == 1.1f && q[1] == 0 && q[5] == 1,
                 "cover stretches rightward past the pane with its left edge pinned");
         dev.tommy.foldshell.system.CoverReveal.innerStretchCorners(1, q);
-        check(q[2] == 1 && q[4] == 1 && Math.abs(q[0] + .25f) < 1e-6 && Math.abs(q[6] + .25f) < 1e-6,
+        check(q[2] == 1 && q[4] == 1 && Math.abs(q[0] + .1f) < 1e-6 && Math.abs(q[6] + .1f) < 1e-6,
                 "inner left half stretches leftward past the pane with its hinge edge pinned");
         float previous = 1;
         for (int i = 1; i <= 10; i++) {
             float s = dev.tommy.foldshell.system.CoverReveal.stretch(i / 10f);
-            check(s >= previous && s <= 1.25f, "stretch grows with rotation and stays bounded");
+            check(s >= previous && s <= 1.1f, "stretch grows with rotation and stays bounded");
             previous = s;
         }
     }

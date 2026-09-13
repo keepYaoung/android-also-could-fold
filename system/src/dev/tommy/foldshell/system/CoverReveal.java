@@ -33,9 +33,9 @@ public final class CoverReveal {
         out[4] = 1; out[5] = 1;
         out[6] = x; out[7] = 1 - inset;
     }
-    /** V5: horizontal stretch of the snapshot, up to 25% wider at full depth. Visual calibration. */
+    /** V5: horizontal stretch of the snapshot, up to 10% wider at full depth. Visual calibration. */
     public static float stretch(float progress) {
-        return 1 + .25f * Math.max(0, Math.min(1, progress));
+        return 1 + .1f * Math.max(0, Math.min(1, progress));
     }
     /** Cover: left edge fixed, right edge pushed past the pane. Ordering TL, TR, BR, BL. */
     public static void stretchCorners(float progress, float[] out) {
