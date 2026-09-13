@@ -17,9 +17,10 @@ The folding animation in this project was inspired by [this post on r/GalaxyFold
 | --- | --- | --- |
 | **V2 · default, experimental** | Takes one in-memory snapshot at motion onset; a black gradient fades in from the right, then moves out to the right and dissolves as opening progresses; the snapshot dissolves into the live screen | The left half is captured; its center/hinge edge stays fixed while the outer left edge recedes when closing and returns when opening |
 | **V1 · live blur** | Right-heavy blur during opening | Left-half blur, strongest at the outside edge |
+| **V4 · snapshot + gradient blur, experimental** | The V2 snapshot plane with the V3 shade on top instead of V2’s linear gradient: the folding-away side darkens with the wide gradient and matching blur | Same on the inner left half |
 | **V3 · flat gradient blur, experimental** | The live screen stays flat and is never captured; the region folding away, from the right edge inward in proportion to measured gyro rotation, darkens with a black gradient toward the edge and is blurred throughout | Same on the left half, from the outer left edge toward the hinge |
 
-Pick **V1 / V2 / V3** under **Effect mode** (`효과 방식`) in the app. Mode changes
+Pick **V1 / V2 / V3 / V4** under **Effect mode** (`효과 방식`) in the app (`run --v4` for a USB trial). Mode changes
 restart the engine if enabled. V3 never captures the screen, so lock-screen capture
 limits do not apply; it shares V2's onset detection, gyro depth and idle dissolve.
 There is no solid black block: the darkening region is a gradient, transparent at its
@@ -30,22 +31,24 @@ started, drew and released the V3 layer during a physical closing; the visual
 tuning is still being adjusted from user feedback.
 
 - Overall effect intensity: **50–150%**.
-- For a temporary USB comparison without extra border blur, add `--no-edge-blur` to the `run --v2` command. This does not change app settings.
+- For a temporary USB comparison of V3 with plain gradient blur instead of the shade-matched blur, add `--no-edge-blur` to the `run --v3` command. This does not change app settings.
 - Perspective snapshots use anti-aliased polygon edges with filtered texture sampling (0.4.12).
-- V2 adds stronger blur around the projected edges and black surround (0.4.11),
-  preserving the existing interior gradient. The border follows the moving shape
-  and fades with the effect.
+- V2 no longer boosts blur around the projected edges (introduced in 0.4.11, removed
+  in 0.5.0 because it read as a hard border). It keeps the per-panel gradient blur.
+  Its perspective retreat is also gentler: the plane recedes by at most 0.18 camera
+  distances on a front-loaded curve, so the first degrees of rotation show at once
+  while the total rotation stays modest.
 - Blank captures and protected-layer/permission denials use the live mask plus blur
   on either panel, including unlock transitions. They do not stop the engine (0.4.10).
 - Cover-to-inner handoff carries the recent rendered depth instead of resetting it.
   The fully open hinge signal settles the inner left plane to exactly flat within
-  140 ms, removing residual perspective and its depth blur (0.4.9).
+  320 ms (140 ms before 0.5.0), removing residual perspective and its depth blur.
 - V2 also applies system gradient blur above the perspective layer: strongest on the
   cover’s right side and the inner left half’s outer edge. Radius follows the same
   relative-depth estimate; it decreases as the inner plane opens and returns flat.
   Lock-screen snapshot and mask paths both receive this blur. It dissolves with the
   effect after the existing idle hold. The combined rendering needs physical tuning.
-- **1.5 seconds without detected movement → a 620 ms V2 dissolve back to the live screen**. Snapshot, black backing and gradient share one opacity envelope while geometry holds steady. V1 and non-idle releases retain 420 ms.
+- **1.5 seconds without detected movement → a dissolve back to the live screen**: 700 ms for V1, 1 s for V2, 1.8 s for V3. Snapshot, black backing and gradient share one opacity envelope while geometry holds steady. Reversal and endpoint releases take 700 ms (V3: 1.4 s), and the closed-cover resolve takes 800 ms. All releases were lengthened in 0.5.0.
 - Reported reversals release the current effect smoothly.
 - No effect on an off display or AOD. On the lock screen, V2 attempts a redacted snapshot; blocked or blank captures use a live perspective mask.
 - Settings, pairing identity, foreground connection monitoring and a notification stop action are retained.
@@ -76,17 +79,17 @@ Execution is blocked on other models; other Fold7 variants are not yet supported
 compatibility needs to be checked after One UI updates.
 
 On this device, the public hinge sensor mainly reports **0 / 90 / 180 degrees**.
-V2 uses one 300ms sustained-signal confirmation window for early opening/closing.
+V2 and V3 use one 200ms sustained-signal confirmation window for early opening/closing.
 V1 retains the older second-burst confirmation. Reported hinge changes and an active
 cover-to-inner handoff do not add a new confirmation wait. Sensor delivery, polling
-and capture add latency; this is not a guaranteed 300ms physical-onset-to-pixel time.
-V2 waits at most 300ms for a capture before using the live mask and discarding late
+and capture add latency; this is not a guaranteed 200ms physical-onset-to-pixel time.
+V2 waits at most 450ms for a capture before using the live mask and discarding late
 results for that cycle. The 1.5-second idle hold remains unchanged.
 
 Early motion is inferred from vendor event timestamps in `dumpsys sensorservice`.
 The engine does not read hidden continuous angle values. Very slow movement and
-small reversals may be missed. Diagnostic polling targets 10 Hz for V2 and 4 Hz for V1 while the screen
-is interactive; long-term battery impact has not been measured.
+small reversals may be missed. Diagnostic polling targets 20 Hz for V2/V3 and 4 Hz for V1 while the screen
+is interactive; long-term battery impact has not been measured and the 20 Hz rate doubles it relative to 0.4.x.
 
 ## Verification status
 
@@ -182,9 +185,9 @@ status above before relying on it for everyday use.
 4. Tap **Initial connection setup** (`최초 연결 설정`) in this app. Open Android's
    **Pair device with pairing code**, keep that dialog open, then enter its six-digit
    code in the **Fold Transition notification**.
-5. Once pairing succeeds, return to the app, choose V1, V2 or V3, and tap
-   **Enable effect** (`효과 켜기`).
-   Stop using **Disable effect** (`효과 끄기`) or the notification's stop action.
+5. Once pairing succeeds, return to the app, pick V1, V2 or V3 and press **Save**,
+   then turn on the effect switch at the top. Turn it off with the same switch or
+   the notification's stop action.
 
 The pairing notification stays available for ten minutes. Expand **Fold Transition
 initial setup** to reveal **Enter code**. If it has expired or an APK update
@@ -312,7 +315,7 @@ are accurate rather than estimated.
 [MIT](LICENSE) · Copyright © 2026 keepYaoung.
 Bundled dependencies retain their own licenses; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
-Cover-to-inner opening retains the incoming cover depth until the first drawable inner frame, including when the fully-open signal arrives during capture. It then aligns to the right pane within 140ms if already fully open.
+Cover-to-inner opening retains the incoming cover depth until the first drawable inner frame, including when the fully-open signal arrives during capture. It then aligns to the right pane within 320ms if already fully open. Blank captures right after a handoff are retried for up to about 350ms before the live mask is used.
 
 During an already confirmed fold, forward gyro movement also refreshes the 1.5-second stationary timer so slow unfolding can continue across sparse hinge events. Gyro alone does not start an effect.
 

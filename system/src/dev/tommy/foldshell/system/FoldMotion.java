@@ -2,9 +2,17 @@ package dev.tommy.foldshell.system;
 
 /** Fold-only state, with bounded motion inference and explicit smooth release. */
 public final class FoldMotion {
-    private final boolean blackGradient;
+    private final boolean blackGradient, gentle;
+    private final long baseReleaseMs, idleReleaseMs;
     public FoldMotion() { this(false); }
-    public FoldMotion(boolean blackGradient) { this.blackGradient = blackGradient; }
+    public FoldMotion(boolean blackGradient) { this(blackGradient, false); }
+    /** gentle: the longest, smoothest releases, for the V3 shade. All modes release
+     *  more slowly than the original 420 ms; every value is a visual calibration. */
+    public FoldMotion(boolean blackGradient, boolean gentle) {
+        this.blackGradient = blackGradient; this.gentle = gentle;
+        baseReleaseMs = gentle ? 1400 : RELEASE_MS;
+        idleReleaseMs = gentle ? 1800 : blackGradient ? 1000 : RELEASE_MS;
+    }
     public enum Direction { OPENING, CLOSING }
     private float previous = Float.NaN, angle;
     private long started, lastMotion, resolving = -1, nextHint;
@@ -12,9 +20,10 @@ public final class FoldMotion {
     private long pendingHintAt = -1, sequence;
     private float fadeFrom, resolveFrom = 1;
     private long releaseMs = RELEASE_MS;
+    private boolean smoothRelease;
     private Direction direction;
     private boolean inner, provisional;
-    private static final long HOLD_MS = 1500, RELEASE_MS = 420;
+    private static final long HOLD_MS = 1500, RELEASE_MS = 700, RESOLVE_MS = 800;
 
     public void angle(float next, boolean isInner, long now) {
         if (!Float.isFinite(next)) return;
@@ -116,7 +125,7 @@ public final class FoldMotion {
             return Math.min(.5f, .18f * ease(ramp) + .32f * Math.min(1f, movementMs / 1000f));
         }
         if (resolving >= 0) {
-            float p = Math.min(1f, Math.max(0, now - resolving) / 480f);
+            float p = Math.min(1f, Math.max(0, now - resolving) / (float) RESOLVE_MS);
             return direction == Direction.CLOSING ? 1f - ease(p)
                     : blackGradient ? resolveFrom * (1f - ease(p)) : 0;
         }
@@ -131,7 +140,8 @@ public final class FoldMotion {
         if (direction == null || fadeStart >= 0) return;
         // Preserve the last rendered target across a direction change.
         fadeFrom = lastOutput;
-        releaseMs = blackGradient && idle ? 620 : RELEASE_MS;
+        releaseMs = idle ? idleReleaseMs : baseReleaseMs;
+        smoothRelease = blackGradient && (idle || gentle);
         fadeStart = now;
         nextHint = Math.max(nextHint, now + releaseMs + (blackGradient ? 300 : 600));
     }
@@ -139,7 +149,7 @@ public final class FoldMotion {
     public float amount(long now) {
         if (direction == null) return 0;
         if (fadeStart < 0) {
-            if (resolving >= 0 && now - resolving >= 480) release(resolving + 480);
+            if (resolving >= 0 && now - resolving >= RESOLVE_MS) release(resolving + RESOLVE_MS);
             else if (now - started >= 10000) release(started + 10000);
             else if (resolving < 0 && now - lastMotion >= HOLD_MS) release(lastMotion + HOLD_MS, true);
         }
@@ -161,8 +171,8 @@ public final class FoldMotion {
     public float visibility(long now) {
         if (fadeStart < 0) return 1;
         float p = Math.min(1f, Math.max(0, now - fadeStart) / (float) releaseMs);
-        // A smoother start/end for the idle crossfade back to the live screen.
-        float curve = releaseMs == 620 ? p * p * p * (p * (p * 6 - 15) + 10) : ease(p);
+        // A smoother start/end for the crossfade back to the live screen.
+        float curve = smoothRelease ? p * p * p * (p * (p * 6 - 15) + 10) : ease(p);
         return Math.max(0, Math.min(1, 1 - curve));
     }
     public long sequence() { return sequence; }

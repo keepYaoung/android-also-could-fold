@@ -97,4 +97,9 @@
     <string name="ob_wifi_why">시스템 컴포지터에 그리려면 shell 권한이 필요한데, 앱은 이 폰 자신의 ADB에 루프백(127.0.0.1)으로 접속해서 그 권한을 얻어요. 다른 기기에는 절대 연결하지 않아요. Wi-Fi가 필요한 이유는 Android가 무선 디버깅을 Wi-Fi 네트워크에서만 켜기 때문이고, 인터넷은 쓰지 않아요. 접힘 효과 자체는 네트워크가 전혀 필요 없어요.</string>
     <string name="ob_pair_why">Android 11 이상은 이 앱을 포함한 모든 ADB 클라이언트가 접속 전에 한 번 페어링하도록 강제해요. 루팅 없이는 우회할 방법이 없어요. 포트는 앱이 자동으로 찾으니 6자리 코드만 넣으면 돼요. 키는 암호화해 저장하고 재사용하므로, 앱 데이터를 지우거나 디버깅 승인을 취소하지 않는 한 한 번만 하면 돼요.</string>
     <string name="onboarding_skip_notif">건너뛰고 코드는 직접 입력할게요</string>
+    <string name="save_mode">저장</string>
+    <string name="saved_mode">저장됨</string>
+    <string name="mode_v4">V4 · 캡처 + 그라디언트 블러</string>
+    <string name="mode_v4_sub">V2 원근 평면에 V3 그늘을 얹음</string>
+    <string name="mode_v4_desc">V2처럼 화면을 메모리에 캡처해 원근으로 후퇴시키되, V2의 선형 그라디언트 대신 V3의 그늘을 얹어요. 접히는 쪽이 넓은 검은 그라디언트로 어두워지고 그에 맞춰 블러가 걸려요. 시작 감지·캡처 규칙·해제 타이밍은 V2와 같아요. 실험 기능이에요.</string>
 </resources>

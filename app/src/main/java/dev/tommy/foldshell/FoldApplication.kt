@@ -11,6 +11,7 @@ import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import android.provider.Settings
+import android.util.Log
 import io.github.muntashirakon.adb.AdbStream
 import java.io.BufferedReader
 import java.io.InputStreamReader
@@ -18,7 +19,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 class FoldApplication : Application() {
-    companion object { val MODES = listOf("v1", "v2", "v3") }
+    companion object { val MODES = listOf("v1", "v2", "v3", "v4") }
     val prefs by lazy { getSharedPreferences("fold", MODE_PRIVATE) }
     val main = Handler(Looper.getMainLooper())
     /** Status shown in the UI: a string resource plus an optional raw detail line from the engine. */
@@ -181,6 +182,8 @@ class FoldApplication : Application() {
                     BufferedReader(InputStreamReader(current.openInputStream())).use { reader ->
                         while (true) {
                             val line = reader.readLine() ?: break
+                            // Engine diagnostics (timings, angles, layer events; no screen content).
+                            Log.i("FoldEngine", line)
                             if (line.startsWith("FOLD ")) io.execute {
                                 if (stream === current) {
                                     lastReply = SystemClock.elapsedRealtime()

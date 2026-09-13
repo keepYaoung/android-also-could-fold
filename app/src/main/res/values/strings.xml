@@ -97,4 +97,9 @@
     <string name="ob_wifi_why">This is how the app gets the shell-level access needed to draw on the system compositor: it connects to this phone’s own ADB over loopback (127.0.0.1) and never to any other device. Wi-Fi is required only because Android starts wireless debugging exclusively on a Wi-Fi network; no internet is used. The fold effect itself needs no network at all.</string>
     <string name="ob_pair_why">Android 11 and later requires every ADB client, including this app, to be paired once before it may connect; there is no way around it without root. The app finds the pairing port automatically, so only the 6-digit code is needed. The key is stored encrypted and reused, so this is a one-time step unless you clear app data or revoke debugging authorizations.</string>
     <string name="onboarding_skip_notif">Skip, I’ll enter the code manually</string>
+    <string name="save_mode">Save</string>
+    <string name="saved_mode">Saved</string>
+    <string name="mode_v4">V4 · Snapshot + gradient blur</string>
+    <string name="mode_v4_sub">V2 perspective plane with the V3 shade</string>
+    <string name="mode_v4_desc">Takes the V2 in-memory snapshot and recedes it in perspective, but instead of V2’s linear gradient it lays the V3 shade on top: the folding-away side darkens with a wide black gradient and is blurred to match. Same onset, capture rules and release timing as V2. Experimental.</string>
 </resources>

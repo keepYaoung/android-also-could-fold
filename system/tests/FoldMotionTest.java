@@ -80,43 +80,58 @@ public class FoldMotionTest {
         dev.tommy.foldshell.system.FoldShell.Mode parse = dev.tommy.foldshell.system.FoldShell.Mode.parse("v3");
         check(parse == dev.tommy.foldshell.system.FoldShell.Mode.MASK
                 && dev.tommy.foldshell.system.FoldShell.Mode.parse("v2") == dev.tommy.foldshell.system.FoldShell.Mode.SNAPSHOT
+                && dev.tommy.foldshell.system.FoldShell.Mode.parse("v4") == dev.tommy.foldshell.system.FoldShell.Mode.HYBRID
                 && dev.tommy.foldshell.system.FoldShell.Mode.parse("v1") == dev.tommy.foldshell.system.FoldShell.Mode.BLUR
                 && dev.tommy.foldshell.system.FoldShell.Mode.parse(null) == dev.tommy.foldshell.system.FoldShell.Mode.BLUR,
                 "mode strings map to backends, unknown falls back to V1 blur");
-        check(dev.tommy.foldshell.system.CoverReveal.maskCoverage(0) == 0
-                && dev.tommy.foldshell.system.CoverReveal.maskCoverage(Float.NaN) == 0
-                && dev.tommy.foldshell.system.CoverReveal.maskCoverage(-1) == 0,
-                "no motion means no mask");
-        float previous = 0;
+        check(dev.tommy.foldshell.system.CoverReveal.maskStrength(0) == 0
+                && dev.tommy.foldshell.system.CoverReveal.maskStrength(Float.NaN) == 0
+                && dev.tommy.foldshell.system.CoverReveal.maskStrength(-1) == 0,
+                "no motion means no shade");
+        float previous = 0, previousReach = 0;
         for (int i = 1; i <= 20; i++) {
-            float coverage = dev.tommy.foldshell.system.CoverReveal.maskCoverage(i / 20f);
-            check(coverage > previous && coverage <= .6f, "mask grows with measured rotation and never covers the hinge side");
-            previous = coverage;
+            float strength = dev.tommy.foldshell.system.CoverReveal.maskStrength(i / 20f);
+            float reach = dev.tommy.foldshell.system.CoverReveal.maskReach(i / 20f);
+            check(strength >= previous && strength <= 1, "shade deepens with measured rotation");
+            check(reach > previousReach && reach >= .25f && reach <= .8f, "shade widens but never covers the hinge side");
+            previous = strength; previousReach = reach;
         }
-        check(dev.tommy.foldshell.system.CoverReveal.maskCoverage(5) == .6f, "mask coverage saturates");
+        check(dev.tommy.foldshell.system.CoverReveal.maskStrength(5) == 1
+                && dev.tommy.foldshell.system.CoverReveal.maskReach(5) == .8f, "shade saturates");
+        check(dev.tommy.foldshell.system.CoverReveal.maskProfile(0) == 0
+                && dev.tommy.foldshell.system.CoverReveal.maskProfile(1) == 1
+                && dev.tommy.foldshell.system.CoverReveal.maskProfile(.25f) < .06f
+                && dev.tommy.foldshell.system.CoverReveal.maskProfile(.5f) < .5f,
+                "spatial profile eases in gently from the inner start");
         for (boolean right : new boolean[]{false, true}) {
             float[][] base = dev.tommy.foldshell.system.BlurProfile.regions(1000, 2200, 70, right);
-            float[][] flat = dev.tommy.foldshell.system.BlurProfile.flatRegions(1000, 2200, 70, right, .5f);
-            check(flat.length == base.length + dev.tommy.foldshell.system.BlurProfile.FLAT_STRIPS,
-                    "flat mode blurs the darkening region in strips");
-            for (int i = 0; i < base.length; i++) check(java.util.Arrays.equals(base[i], flat[i]),
-                    "flat mode preserves the interior blur gradient");
-            float edge = right ? 1000 * (1 - .3f) : 1000 * .3f;
-            float minX = 1000, maxX = 0, previousAlpha = right ? 0 : 2;
-            for (int i = base.length; i < flat.length; i++) {
-                float[] e = flat[i];
-                check(e[0] > 70 && e[0] <= 360 && e[2] >= 0 && e[3] == 0 && e[4] <= 1000 && e[5] == 2200,
+            // Progress .8 is past the strength saturation point, so the outer edge is at full blend.
+            float[][] flat = dev.tommy.foldshell.system.BlurProfile.flatRegions(1000, 2200, 70, right, .8f);
+            check(flat.length == dev.tommy.foldshell.system.BlurProfile.FLAT_STRIPS,
+                    "flat mode blurs only the shaded span, in strips");
+            float reach = dev.tommy.foldshell.system.CoverReveal.maskReach(.8f);
+            float edge = right ? 1000 * (1 - reach) : 1000 * reach;
+            float minX = 1000, maxX = 0, previousAlpha = right ? 0 : 2, previousRadius = right ? 0 : 999;
+            for (float[] e : flat) {
+                check(e[0] >= 1 && e[0] <= 360 && e[2] >= 0 && e[3] == 0 && e[4] <= 1000 && e[5] == 2200,
                         "strips are full-height vertical bands inside the pane");
-                check(right ? e[2] >= 500 : e[4] <= 500, "strips stay on the folding-away side of the pane");
-                check(right ? e[1] >= previousAlpha : e[1] <= previousAlpha, "blur strengthens toward the outer edge");
-                previousAlpha = e[1];
+                check(right ? e[2] >= edge - 1 : e[4] <= edge + 1, "strips stay on the folding-away side of the pane");
+                check(right ? e[1] >= previousAlpha : e[1] <= previousAlpha, "blend strengthens toward the outer edge");
+                check(right ? e[0] >= previousRadius : e[0] <= previousRadius, "radius grows toward the outer edge");
+                previousAlpha = e[1]; previousRadius = e[0];
                 minX = Math.min(minX, e[2]); maxX = Math.max(maxX, e[4]);
             }
-            check(minX <= edge && edge <= maxX, "strips cover the gradient boundary");
+            float[] boundary = flat[right ? 0 : flat.length - 1], outer = flat[right ? flat.length - 1 : 0];
+            check(boundary[1] < .04f && boundary[0] < 20, "blur starts almost invisible at the inner start of the shade");
+            check(outer[1] > .99f && outer[0] == 126, "blur reaches full blend and boosted radius at the outer edge");
+            check(Math.abs((right ? minX : maxX) - edge) <= 1, "strips begin exactly where the gradient begins");
             check(right ? maxX == 1000 : minX == 0, "strips reach the outer edge");
+            float[][] faint = dev.tommy.foldshell.system.BlurProfile.flatRegions(1000, 2200, 70, right, .1f);
+            check(faint.length == flat.length && faint[right ? faint.length - 1 : 0][1] < .3f,
+                    "an early shade keeps its blur faint everywhere");
         }
-        check(dev.tommy.foldshell.system.BlurProfile.flatRegions(1000, 2200, 70, true, 0).length == 32,
-                "no mask means no extra band");
+        check(dev.tommy.foldshell.system.BlurProfile.flatRegions(1000, 2200, 70, true, 0).length == 0,
+                "no mask means no blur");
         check(dev.tommy.foldshell.system.BlurProfile.flatRegions(1000, 2200, 0, true, .5f).length == 0,
                 "edge band disappears when base blur releases");
     }
@@ -137,14 +152,14 @@ public class FoldMotionTest {
         check(m.amount(2500) == peak && m.releasing(), "1.5 second hold begins continuous fade");
         float mid = m.amount(2710);
         check(mid > 0 && mid < peak, "hold release fades instead of disappearing");
-        check(m.amount(2920) == 0 && !m.active(), "release completes");
+        check(m.amount(3200) == 0 && !m.active(), "release completes after 700ms");
 
         m.reset(); m.angle(180, true, 3000); m.angle(120, true, 3100);
         float beforeReverse = m.amount(3200);
         m.angle(120.2f, true, 3300);
         check(m.releasing() && m.amount(3300) == beforeReverse,
                 "small delivered reverse angle starts fade with no jump");
-        check(m.amount(3510) < beforeReverse && m.amount(3720) == 0,
+        check(m.amount(3510) < beforeReverse && m.amount(4000) == 0,
                 "reverse removes the existing effect smoothly");
 
         m.reset(); m.angle(180, true, 4000); m.angle(90, true, 4100);
@@ -152,9 +167,9 @@ public class FoldMotionTest {
         check(m.amount(4900) > 0, "wait for late Samsung closing handoff");
         m.display(false, 5000);
         check(m.amount(5000) == 1, "cover starts blurred even after angle zero");
-        check(Math.abs(m.amount(5240) - .5f) < .01, "cover resolves with smooth curve");
-        m.amount(5479); m.amount(5480);
-        check(m.amount(5900) == 0 && !m.active(), "cover cleanup is bounded");
+        check(Math.abs(m.amount(5400) - .5f) < .01, "cover resolves with smooth curve over 800ms");
+        m.amount(5799); m.amount(5800);
+        check(m.amount(6600) == 0 && !m.active(), "cover cleanup is bounded");
 
         FoldMotion early = new FoldMotion();
         early.angle(0, false, 0);
@@ -165,7 +180,7 @@ public class FoldMotionTest {
         check(early.amount(1720) >= .6f, "cover opening is more dramatic");
         check(early.amount(2999) >= .6f, "unconfirmed effect awaits motion until timeout");
         early.amount(3000);
-        check(early.amount(3210) > 0 && early.amount(3420) == 0,
+        check(early.amount(3210) > 0 && early.amount(3700) == 0,
                 "unconfirmed cover start also fades smoothly");
         check(!early.hint(false, 3500), "noise retrigger cooldown");
         early.reset();
@@ -189,11 +204,11 @@ public class FoldMotionTest {
         check(!m.releasing() && m.amount(1900) == 1, "public opening confirms new cycle");
 
         m.reset(); m.angle(180, true, 0); m.angle(90, true, 100);
-        m.amount(100); m.angle(0, false, 200); m.amount(679); m.amount(680);
+        m.amount(100); m.angle(0, false, 200); m.amount(999); m.amount(1000);
         check(m.releasing(), "old cover effect is fading");
-        m.angle(90, false, 700);
+        m.angle(90, false, 1100);
         check(m.direction() == FoldMotion.Direction.OPENING && !m.releasing()
-                && m.amount(700) == 1, "opening angle is not lost during previous close fade");
+                && m.amount(1100) == 1, "opening angle is not lost during previous close fade");
         FoldMotion progressing = new FoldMotion();
         progressing.angle(0, false, 0);
         check(!progressing.hint(false, 1000), "cover waits for confirmation");
@@ -207,7 +222,7 @@ public class FoldMotionTest {
         progressing.angle(90, false, 2500);
         check(progressing.amount(2500) == 1, "observed angle takes over at cover peak");
         progressing.amount(4000);
-        check(progressing.releasing() && progressing.amount(4420) == 0,
+        check(progressing.releasing() && progressing.amount(4700) == 0,
                 "stronger opening still releases after 1.5 second hold");
         FoldMotion guarded = new FoldMotion();
         guarded.angle(180, true, 0);
@@ -244,17 +259,17 @@ public class FoldMotionTest {
         v2.angle(180, true, 300);
         check(v2.amount(300) == .5f, "endpoint resolve never jumps darker");
         check(v2.amount(540) < .5f && v2.amount(540) > 0, "v2 inner shadow resolves smoothly");
-        v2.amount(780); check(v2.amount(1200) == 0, "v2 opening cleanup completes");
+        v2.amount(1100); check(v2.amount(1800) == 0, "v2 opening cleanup completes after resolve and release");
         v2.reset(); v2.angle(0, false, 2000); v2.angle(180, true, 2100);
-        check(v2.amount(2100) == 1 && v2.amount(2340) == .5f,
+        check(v2.amount(2100) == 1 && v2.amount(2500) == .5f,
                 "coarse angle jump still gives inner reveal instead of disappearing instantly");
         v2.reset(); v2.angle(0, false, 3000);
         check(!v2.hint(false, 4000) && v2.hint(false, 4500), "v2 preserves cover noise confirmation");
         check(v2.amount(4720) <= .21f, "v2 cover begins with a gentle shadow");
         v2.activity(5000); check(v2.amount(5000) > .2f, "v2 continued opening darkens cover");
         v2.amount(6500);
-        check(v2.visibility(6810) == .5f, "retained screenshot dissolves with the shadow");
-        check(v2.amount(7120) == 0 && !v2.active(), "v2 idle releases all visuals");
+        check(v2.visibility(7000) == .5f, "retained screenshot dissolves with the shadow over 1s");
+        check(v2.amount(7600) == 0 && !v2.active(), "v2 idle releases all visuals");
         FoldMotion cycles = new FoldMotion(true);
         cycles.angle(180, true, 0); cycles.angle(90, true, 100);
         long closingCycle = cycles.sequence();
@@ -331,8 +346,18 @@ public class FoldMotionTest {
         }
         check(dev.tommy.foldshell.system.CoverReveal.depthScale(0) == 1,
                 "closed cover snapshot starts at native size");
-        check(dev.tommy.foldshell.system.CoverReveal.depthScale(.5f) < .8f,
-                "first coarse opening sample produces visible depth retreat");
+        check(dev.tommy.foldshell.system.CoverReveal.depthScale(.5f) < .95f
+                && dev.tommy.foldshell.system.CoverReveal.depthScale(1) > .8f,
+                "first coarse opening sample produces visible but modest depth retreat");
+        float previousSnapshotDepth = 0;
+        for (int i = 1; i <= 20; i++) {
+            float depth = dev.tommy.foldshell.system.CoverReveal.snapshotDepth(i / 20f);
+            check(depth >= previousSnapshotDepth && depth <= 1, "V2 depth grows with rotation");
+            previousSnapshotDepth = depth;
+        }
+        check(dev.tommy.foldshell.system.CoverReveal.snapshotDepth(.25f) > .5f
+                && dev.tommy.foldshell.system.CoverReveal.snapshotDepth(1) == 1,
+                "V2 depth is front-loaded so the first degrees of rotation show immediately");
         dev.tommy.foldshell.system.CoverRotation rotation = new dev.tommy.foldshell.system.CoverRotation();
         check(!rotation.begin(0), "missing gyro cannot claim angle tracking");
         rotation.sample(0, 1_000_000_000L, 1000);
@@ -356,7 +381,7 @@ public class FoldMotionTest {
         check(sustained.active() && !sustained.releasing(), "slow opening survives inner handoff");
         sustained.amount(5600);
         check(sustained.releasing(), "actual 1.5s stop still starts dissolve");
-        sustained.amount(6220);
+        sustained.amount(6600);
         check(!sustained.active(), "stationary dissolve still completes");
         check(dev.tommy.foldshell.system.CoverReveal.motionDepth(.08f) - .2f < .00001f && dev.tommy.foldshell.system.CoverReveal.motionDepth(.08f) > .19999f,
                 "small cover motion has a visible calibrated depth");
@@ -421,10 +446,11 @@ public class FoldMotionTest {
         float entry = dev.tommy.foldshell.system.CoverReveal.innerStart(true, 0, .4f);
         check(dev.tommy.foldshell.system.CoverReveal.settleDepth(entry, 0) == .4f,
                 "first visible frame retains entry even after capture waiting");
-        check(dev.tommy.foldshell.system.CoverReveal.settleDepth(entry, 140) == 0,
-                "entry aligns within 140ms of first visible frame");
+        check(dev.tommy.foldshell.system.CoverReveal.settleDepth(entry, 320) == 0
+                && dev.tommy.foldshell.system.CoverReveal.settleDepth(entry, 140) > 0,
+                "entry aligns within 320ms of first visible frame, not abruptly");
         float settling = .5f;
-        for (int ms = 0; ms <= 200; ms++) {
+        for (int ms = 0; ms <= 400; ms++) {
             float depth = dev.tommy.foldshell.system.CoverReveal.settleDepth(.5f, ms);
             check(depth >= 0 && depth <= settling, "open endpoint settles without overshoot");
             settling = depth;
@@ -467,14 +493,19 @@ public class FoldMotionTest {
         }
         check(dev.tommy.foldshell.system.BlurProfile.perspectiveRegions(1000, 2200, 0, true, .5f).length == 0,
                 "edge boost disappears when base blur releases");
-        dev.tommy.foldshell.system.VendorEventGate quick = new dev.tommy.foldshell.system.VendorEventGate(300);
+        dev.tommy.foldshell.system.VendorEventGate quick = new dev.tommy.foldshell.system.VendorEventGate(200, 2);
         check(!quick.accept(times(1), 1), "fast gate starts from a baseline");
-        for (int i = 0; i < 3; i++) {
-            double now = 1.1 + i * .1;
-            check(!quick.accept(times(now-.04, now-.03, now-.02, now-.01), now),
-                    "fast onset still rejects bursts shorter than 300ms");
+        for (int i = 0; i < 2; i++) {
+            double now = 1.05 + i * .05;
+            check(!quick.accept(times(now-.03, now-.01), now),
+                    "fast onset still rejects bursts shorter than 200ms");
         }
-        check(quick.accept(times(1.36, 1.37, 1.38, 1.39), 1.4), "fast onset qualifies at 300ms");
+        check(!quick.accept(times(1.13, 1.14), 1.15) && !quick.accept(times(1.18, 1.19), 1.2),
+                "20Hz reads keep accumulating with two fresh samples each");
+        check(quick.accept(times(1.23, 1.24), 1.25), "fast onset qualifies at 200ms");
+        dev.tommy.foldshell.system.VendorEventGate sparse = new dev.tommy.foldshell.system.VendorEventGate(200, 2);
+        check(!sparse.accept(times(2), 2) && !sparse.accept(times(2.04), 2.05) && !sparse.accept(times(2.09), 2.1),
+                "one fresh sample per read is still noise");
         FoldMotion quickMotion = new FoldMotion(true);
         quickMotion.angle(0, false, 0);
         check(quickMotion.confirmedHint(false, 1000), "qualified burst does not wait for a second confirmation");
@@ -488,15 +519,27 @@ public class FoldMotionTest {
         check(idleDissolve.visibility(2499) == 1, "idle screen stays fully visible through 1.5s hold");
         idleDissolve.amount(2500);
         float lastVisible = 1;
-        for (int time = 2500; time < 3120; time += 10) {
+        for (int time = 2500; time < 3500; time += 10) {
             idleDissolve.amount(time);
             float visible = idleDissolve.visibility(time);
             check(visible <= lastVisible && visible >= 0, "idle dissolve never flashes brighter");
             lastVisible = visible;
         }
-        check(idleDissolve.active(), "V2 idle dissolve lasts beyond old 420ms fade");
-        idleDissolve.amount(3120);
-        check(!idleDissolve.active(), "idle dissolve finishes after 620ms");
+        check(idleDissolve.active(), "V2 idle dissolve lasts beyond the 700ms fade");
+        idleDissolve.amount(3500);
+        check(!idleDissolve.active(), "idle dissolve finishes after 1s");
+        FoldMotion gentle = new FoldMotion(true, true);
+        gentle.angle(0, false, 0); gentle.angle(90, false, 1000);
+        gentle.amount(2500);
+        check(gentle.releasing() && gentle.visibility(2500) == 1, "gentle idle release starts after the same 1.5s hold");
+        check(gentle.visibility(3500) > .3f && gentle.active(), "V3 idle dissolve outlasts the 1s V2 dissolve");
+        gentle.amount(4300);
+        check(!gentle.active(), "V3 idle dissolve completes after 1.8s");
+        FoldMotion gentleReverse = new FoldMotion(true, true);
+        gentleReverse.angle(180, true, 0); gentleReverse.angle(120, true, 100); gentleReverse.amount(200);
+        gentleReverse.reverse(300);
+        check(gentleReverse.amount(1200) > 0 && gentleReverse.active(), "V3 reversal release is longer than 700ms");
+        check(gentleReverse.amount(1700) == 0 && !gentleReverse.active(), "V3 reversal release completes at 1.4s");
         testProfile(); testGate(); testCapturePolicy(); testFlatMask();
         System.out.println("FoldMotionTest: PASS");
     }

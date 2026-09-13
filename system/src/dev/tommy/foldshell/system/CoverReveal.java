@@ -34,8 +34,16 @@ public final class CoverReveal {
         out[6] = x; out[7] = 1 - inset;
     }
     /** Amplify measured motion without advancing on elapsed time. */
-    public static float motionDepth(float progress) {
-        return Math.max(0, Math.min(1, progress * 2.5f));
+    public static float motionDepth(float progress) { return motionDepth(progress, 2.5f); }
+    public static float motionDepth(float progress, float gain) {
+        return Math.max(0, Math.min(1, progress * gain));
+    }
+    /** V2 plane depth: responds quickly to the first degrees of rotation (ease-out) and
+     *  saturates early; the small depthScale keeps the total rotation modest. */
+    public static final float SNAPSHOT_GAIN = 1.6f;
+    public static float snapshotDepth(float progress) {
+        float d = motionDepth(progress, SNAPSHOT_GAIN);
+        return 1 - (1 - d) * (1 - d);
     }
     public static float openingDepth(float start, float progress) {
         // Consume a fraction of the incoming depth, not an absolute depth unit.
@@ -48,16 +56,29 @@ public final class CoverReveal {
     }
     /** Reach the exact shared plane promptly after the authoritative open endpoint. */
     public static float settleDepth(float from, long elapsedMs) {
-        return from * (1 - ease(elapsedMs / 140f));
+        return from * (1 - ease(elapsedMs / 320f));
     }
-    /** V3: fraction of the pane hidden by the flat black mask. Visual calibration, not a hinge angle. */
-    public static float maskCoverage(float progress) {
+    /** V3: fraction of the pane, from the outer edge inward, that the darkening reaches.
+     *  Wide from the start so the effect reads as a soft shade rather than a moving stripe. */
+    public static float maskReach(float progress) {
         if (!Float.isFinite(progress)) return 0;
-        return .6f * Math.max(0, Math.min(1, progress));
+        return .25f + .55f * Math.max(0, Math.min(1, progress));
     }
-    /** Perspective size for a front-facing plane receding by 0..0.65 camera distances. */
+    /** V3: how dark the outer edge is, 0..1. Grows with measured rotation; visual calibration. */
+    public static float maskStrength(float progress) {
+        if (!Float.isFinite(progress)) return 0;
+        float p = Math.max(0, Math.min(1, progress * 1.5f));
+        return p * p * (3 - 2 * p);
+    }
+    /** Spatial profile across the shade, 0 at its inner start, 1 at the outer edge. Gentle ease-in. */
+    public static float maskProfile(float u) {
+        u = Math.max(0, Math.min(1, u));
+        float s = u * u * (3 - 2 * u);
+        return (float) Math.pow(s, 1.6);
+    }
+    /** Perspective size for a front-facing plane receding by 0..0.18 camera distances. */
     public static float depthScale(float progress) {
-        float depth = .65f * Math.max(0, Math.min(1, progress));
+        float depth = .18f * Math.max(0, Math.min(1, progress));
         return 1f / (1f + depth);
     }
 }

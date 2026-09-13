@@ -97,4 +97,9 @@
     <string name="ob_wifi_why">システムコンポジターに描画するには shell 権限が必要で、アプリはこの端末自身の ADB にループバック（127.0.0.1）で接続してその権限を得ます。他の端末には一切接続しません。Wi-Fi が必要なのは Android がワイヤレスデバッグを Wi-Fi ネットワーク上でしか起動しないためで、インターネットは使いません。折りたたみエフェクト自体にネットワークは不要です。</string>
     <string name="ob_pair_why">Android 11 以降は、このアプリを含むすべての ADB クライアントに接続前の一度のペア設定を求めます。root なしで回避する方法はありません。ポートはアプリが自動検出するので、必要なのは6桁のコードだけです。キーは暗号化して保存・再利用するため、アプリデータを消去したりデバッグ承認を取り消したりしない限り一度きりです。</string>
     <string name="onboarding_skip_notif">スキップしてコードは手動入力する</string>
+    <string name="save_mode">保存</string>
+    <string name="saved_mode">保存済み</string>
+    <string name="mode_v4">V4 · キャプチャ + グラデーションブラー</string>
+    <string name="mode_v4_sub">V2 の遠近平面に V3 のシェードを重ねる</string>
+    <string name="mode_v4_desc">V2 と同じく画面をメモリにキャプチャして遠近方向に後退させ、V2 の線形グラデーションの代わりに V3 のシェードを重ねます。折れる側が広い黒のグラデーションで暗くなり、それに合わせてブラーがかかります。検出・キャプチャ規則・解放タイミングは V2 と同じです。実験機能です。</string>
 </resources>

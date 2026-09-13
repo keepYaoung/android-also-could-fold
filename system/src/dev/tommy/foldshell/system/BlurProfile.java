@@ -46,25 +46,25 @@ public final class BlurProfile {
         }
         return all.toArray(new float[0][]);
     }
-    /** V3: keep the interior gradient; blur the whole darkening region, stronger toward its outer edge. */
-    public static final int FLAT_STRIPS = 8;
+    /** V3: blur only the shaded span. Blend and radius both follow the same spatial
+     *  profile as the drawn gradient, from nearly nothing at the inner start to their
+     *  maximum at the outer edge, and the whole ramp scales with the shade strength. */
+    public static final int FLAT_STRIPS = 24;
     public static float[][] flatRegions(int width, int height, int radius,
                                         boolean strongRight, float progress) {
-        float[][] base = regions(width, height, radius, strongRight);
-        if (base.length == 0 || !Float.isFinite(progress) || progress <= 0) return base;
-        java.util.ArrayList<float[]> all = new java.util.ArrayList<>(java.util.Arrays.asList(base));
-        float coverage = CoverReveal.maskCoverage(progress);
-        float edge = strongRight ? (1 - coverage) * width : coverage * width;
+        if (width <= 0 || height <= 0 || radius <= 0 || !Float.isFinite(progress) || progress <= 0)
+            return new float[0][];
+        float reach = CoverReveal.maskReach(progress), strength = CoverReveal.maskStrength(progress);
+        if (strength <= 0) return new float[0][];
+        float from = strongRight ? (1 - reach) * width : 0, to = strongRight ? width : reach * width;
         int boosted = Math.min(360, Math.round(radius * 1.8f));
-        // Begin a little inside the visible area to match the soft gradient start.
-        float pad = Math.max(2, Math.min(width * .08f, boosted * .8f));
-        float from = strongRight ? edge - pad : 0, to = strongRight ? width : edge + pad;
+        java.util.ArrayList<float[]> all = new java.util.ArrayList<>();
         for (int i = 0; i < FLAT_STRIPS; i++) {
             float l = from + (to - from) * i / FLAT_STRIPS, r = from + (to - from) * (i + 1) / FLAT_STRIPS;
             float x = (i + .5f) / FLAT_STRIPS;
-            float toward = strongRight ? x : 1 - x;           // 0 at the boundary, 1 at the outer edge
-            float alpha = .3f + .7f * toward * toward * (3 - 2 * toward);
-            addRegion(all, boosted, alpha, l, 0, r, height, width, height);
+            float t = CoverReveal.maskProfile(strongRight ? x : 1 - x);   // 0 inner start, 1 outer edge
+            addRegion(all, Math.max(1, Math.round(boosted * (.08f + .92f * t) * (.4f + .6f * strength))),
+                    Math.min(1, (.03f + .97f * t) * strength), l, 0, r, height, width, height);
         }
         return all.toArray(new float[0][]);
     }

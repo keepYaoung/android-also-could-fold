@@ -16,7 +16,7 @@ import java.util.function.Consumer;
 final class BlackGradientRenderer {
     private final Handler handler;
     private final Consumer<Throwable> failure;
-    private final boolean flatMask;
+    private final boolean flatMask, shade;
     private final ExecutorService captureThread = Executors.newSingleThreadExecutor(r -> {
         Thread thread = new Thread(r, "FoldSnapshot"); thread.setDaemon(true); return thread;
     });
@@ -43,8 +43,10 @@ final class BlackGradientRenderer {
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
 
     BlackGradientRenderer(Handler handler, Consumer<Throwable> failure) { this(handler, failure, false); }
-    BlackGradientRenderer(Handler handler, Consumer<Throwable> failure, boolean flatMask) {
-        this.handler = handler; this.failure = failure; this.flatMask = flatMask;
+    BlackGradientRenderer(Handler handler, Consumer<Throwable> failure, boolean flatMask) { this(handler, failure, flatMask, flatMask); }
+    /** shade: draw the V3 wide deepening gradient instead of V2's linear gradient (V4 = snapshot + shade). */
+    BlackGradientRenderer(Handler handler, Consumer<Throwable> failure, boolean flatMask, boolean shade) {
+        this.handler = handler; this.failure = failure; this.flatMask = flatMask; this.shade = shade;
     }
     boolean flat() { return flatMask; }
     void render(String display, Object address, int w, int h, int layerStack,
@@ -67,13 +69,21 @@ final class BlackGradientRenderer {
                 Bitmap bitmap = null;
                 try {
                     if (closed || generation != request) return;
-                    bitmap = capture(physical, w, h);
-                    if (isInner) {
-                        Bitmap leftHalf = Bitmap.createBitmap(bitmap, 0, 0, w / 2, h);
-                        if (leftHalf != bitmap) bitmap.recycle();
-                        bitmap = leftHalf;
+                    // Right after a panel handoff the new panel has not drawn its first frame
+                    // yet, so the first capture is blank. Retry briefly instead of giving up.
+                    for (int attempt = 0; ; attempt++) {
+                        if (closed || generation != request) return;
+                        bitmap = capture(physical, w, h);
+                        if (isInner) {
+                            Bitmap leftHalf = Bitmap.createBitmap(bitmap, 0, 0, w / 2, h);
+                            if (leftHalf != bitmap) bitmap.recycle();
+                            bitmap = leftHalf;
+                        }
+                        if (!isBlank(bitmap)) break;
+                        bitmap.recycle(); bitmap = null;
+                        if (attempt >= 6) throw new CapturePolicy.Unavailable("Blank panel snapshot");
+                        try { Thread.sleep(50); } catch (InterruptedException stopped) { return; }
                     }
-                    if (isBlank(bitmap)) throw new CapturePolicy.Unavailable("Blank panel snapshot");
                     final Bitmap result = bitmap;
                     synchronized (pendingBitmaps) {
                         if (closed || generation != request) { result.recycle(); return; }
@@ -108,11 +118,11 @@ final class BlackGradientRenderer {
             });
         }
         if (snapshot == null && !captureUnavailable) {
-            if (android.os.SystemClock.elapsedRealtime() - captureStarted < 300) return;
+            if (android.os.SystemClock.elapsedRealtime() - captureStarted < 450) return;
             // Invalidate a late result before drawing the mask. Never replace it
             // mid-cycle with a capture that may include a newer panel/overlay.
             generation++; captureUnavailable = true;
-            System.out.println("V2 capture fallback=live-mask reason=deadline-300ms");
+            System.out.println("V2 capture fallback=live-mask reason=deadline-450ms");
         }
         int pane = inner ? width / 2 : width;
         if (layer == null) {
@@ -139,7 +149,8 @@ final class BlackGradientRenderer {
             coverProgress = CoverReveal.settleDepth(flattenFrom, now - flattenStart);
         } else {
             flattenStart = -1;
-            coverProgress += (targetProgress - coverProgress) * Math.min(1, dt / 45f);
+            // V3 smooths harder: a shade should not tremble with gyro noise.
+            coverProgress += (targetProgress - coverProgress) * Math.min(1, dt / (flatMask ? 90f : 45f));
         }
         {
             int step = (int) (coverProgress * 5);
@@ -213,14 +224,17 @@ final class BlackGradientRenderer {
                 canvas.drawPath(outside, paint);
             }
             paint.setAlpha(255);
-            paint.setShader(new LinearGradient(left, 0, !inner && opening ? left + pane * .85f : pane, 0,
-                    inner ? Color.argb(alpha, 0, 0, 0) : Color.TRANSPARENT,
-                    inner ? Color.TRANSPARENT : Color.argb(alpha, 0, 0, 0), Shader.TileMode.CLAMP));
-            canvas.drawRect(0, 0, pane, height, paint);
+            if (shade) drawShade(canvas, pane, intensity);
+            else {
+                paint.setShader(new LinearGradient(left, 0, !inner && opening ? left + pane * .85f : pane, 0,
+                        inner ? Color.argb(alpha, 0, 0, 0) : Color.TRANSPARENT,
+                        inner ? Color.TRANSPARENT : Color.argb(alpha, 0, 0, 0), Shader.TileMode.CLAMP));
+                canvas.drawRect(0, 0, pane, height, paint);
+            }
         } finally { paint.setShader(null); canvasSurface.unlockCanvasAndPost(canvas); }
         try (SurfaceControl.Transaction t = new SurfaceControl.Transaction()) {
             SurfaceControl.Transaction.class.getMethod("setLayerStack", SurfaceControl.class, int.class).invoke(t, layer, stack);
-            t.setLayer(layer, 2000000);
+            t.setLayer(layer, FoldShell.CANVAS_Z);
             // One compositor alpha fades image, backing, mask and shadow together.
             t.setAlpha(layer, clamp(visibility));
             SurfaceControl.Transaction.class.getMethod("show", SurfaceControl.class).invoke(t, layer);
@@ -230,43 +244,50 @@ final class BlackGradientRenderer {
     }
     float depthProgress() { return coverProgress; }
 
-    /** V3: the folding-away region darkens with a gradient toward its outer edge. Never a solid block. */
+    /** The wide, deepening shade shared by V3 (alone) and V4 (over the V2 plane). Same profile as flatRegions. */
+    private void drawShade(Canvas canvas, int pane, float intensity) {
+        float reach = CoverReveal.maskReach(coverProgress), strength = CoverReveal.maskStrength(coverProgress);
+        int start = Math.round(pane * (inner ? reach : 1 - reach));
+        int edgeAlpha = Math.round(255 * clamp(.94f * intensity) * strength);
+        if (edgeAlpha <= 0) return;
+        int steps = 8;
+        int[] colors = new int[steps + 1]; float[] stops = new float[steps + 1];
+        for (int i = 0; i <= steps; i++) {
+            stops[i] = i / (float) steps;
+            colors[i] = Color.argb(Math.round(edgeAlpha * CoverReveal.maskProfile(stops[i])), 0, 0, 0);
+        }
+        paint.setAlpha(255);
+        if (inner) {
+            paint.setShader(new LinearGradient(start, 0, 0, 0, colors, stops, Shader.TileMode.CLAMP));
+            canvas.drawRect(0, 0, start, height, paint);
+        } else {
+            paint.setShader(new LinearGradient(start, 0, pane, 0, colors, stops, Shader.TileMode.CLAMP));
+            canvas.drawRect(start, 0, pane, height, paint);
+        }
+        paint.setShader(null);
+    }
+    /** V3: a wide shade over the folding-away side that deepens with rotation. Never a solid block. */
     private void drawFlatMask(int pane, float visibility, float intensity) throws Exception {
-        float coverage = CoverReveal.maskCoverage(coverProgress);
-        // Cover: enters from the right edge. Inner left half: enters from the outer left edge.
-        int edge = Math.round(pane * (inner ? coverage : 1 - coverage));
-        int maskAlpha = Math.round(255 * clamp(.94f * intensity));
+        float reach = CoverReveal.maskReach(coverProgress), strength = CoverReveal.maskStrength(coverProgress);
+        // Cover: shade grows from the right edge. Inner left half: from the outer left edge.
+        int start = Math.round(pane * (inner ? reach : 1 - reach));
+        int edgeAlpha = Math.round(255 * clamp(.94f * intensity) * strength);
         int visible = Math.round(255 * clamp(visibility));
-        if (maskAlpha == lastAlpha && visible == lastVisibility && edge == lastLeft && coverProgress == lastProgress) return;
-        // Start slightly inside the visible area so the boundary has no hard line.
-        float soft = pane * .08f;
+        if (edgeAlpha == lastAlpha && visible == lastVisibility && start == lastLeft && coverProgress == lastProgress) return;
         Canvas canvas = canvasSurface.lockCanvas(null);
         try {
             canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
             paint.setShader(null); paint.setAlpha(255);
-            if (coverage > 0) {
-                int[] colors = {Color.TRANSPARENT, Color.argb(Math.round(maskAlpha * .3f), 0, 0, 0),
-                        Color.argb(Math.round(maskAlpha * .72f), 0, 0, 0), Color.argb(maskAlpha, 0, 0, 0)};
-                float[] stops = {0, .35f, .7f, 1};
-                if (inner) {
-                    float start = Math.min(pane, edge + soft);
-                    paint.setShader(new LinearGradient(start, 0, 0, 0, colors, stops, Shader.TileMode.CLAMP));
-                    canvas.drawRect(0, 0, start, height, paint);
-                } else {
-                    float start = Math.max(0, edge - soft);
-                    paint.setShader(new LinearGradient(start, 0, pane, 0, colors, stops, Shader.TileMode.CLAMP));
-                    canvas.drawRect(start, 0, pane, height, paint);
-                }
-            }
+            drawShade(canvas, pane, intensity);
         } finally { paint.setShader(null); canvasSurface.unlockCanvasAndPost(canvas); }
         try (SurfaceControl.Transaction t = new SurfaceControl.Transaction()) {
             SurfaceControl.Transaction.class.getMethod("setLayerStack", SurfaceControl.class, int.class).invoke(t, layer, stack);
-            t.setLayer(layer, 2000000);
+            t.setLayer(layer, FoldShell.CANVAS_Z);
             t.setAlpha(layer, clamp(visibility));
             SurfaceControl.Transaction.class.getMethod("show", SurfaceControl.class).invoke(t, layer);
             t.apply();
         }
-        lastAlpha = maskAlpha; lastVisibility = visible; lastLeft = edge; lastProgress = coverProgress;
+        lastAlpha = edgeAlpha; lastVisibility = visible; lastLeft = start; lastProgress = coverProgress;
     }
 
     private static boolean isBlank(Bitmap bitmap) {

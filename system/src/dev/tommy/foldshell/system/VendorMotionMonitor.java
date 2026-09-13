@@ -11,7 +11,7 @@ import java.util.function.LongConsumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/** Bounded diagnostic polling: V1 4Hz, V2 up to 10Hz with one 300ms confirmation. */
+/** Bounded diagnostic polling: V1 4Hz, V2/V3 up to 20Hz with one 200ms confirmation. */
 final class VendorMotionMonitor implements AutoCloseable {
     private final Handler main;
     private final BooleanSupplier enabled;
@@ -24,7 +24,8 @@ final class VendorMotionMonitor implements AutoCloseable {
     private static final Pattern SAMPLE = Pattern.compile("\\s*\\d+ \\(ts=([0-9.]+),.*");
     VendorMotionMonitor(Handler main, BooleanSupplier enabled, boolean fastStart, LongConsumer motion) {
         this.main = main; this.enabled = enabled; this.motion = motion;
-        intervalMs = fastStart ? 100 : 250; gate = new VendorEventGate(fastStart ? 300 : 0);
+        // Faster polling sees fewer new samples per read, so the per-read minimum scales down.
+        intervalMs = fastStart ? 50 : 250; gate = new VendorEventGate(fastStart ? 200 : 0, fastStart ? 2 : 4);
         worker = new Thread(this::loop, "FoldEventMonitor");
         worker.setDaemon(true);
         worker.start();

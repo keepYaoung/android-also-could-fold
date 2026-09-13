@@ -7,9 +7,14 @@ public final class VendorEventGate {
     private double latest = -1, lastRead = -1;
     private int consecutive;
     private final double confirmationSeconds;
+    private final int minFresh;
     private double burstStart = -1;
     public VendorEventGate() { this(0); }
-    public VendorEventGate(int confirmationMs) { confirmationSeconds = confirmationMs / 1000.0; }
+    public VendorEventGate(int confirmationMs) { this(confirmationMs, 4); }
+    /** minFresh: new samples required per read; scale it with the polling interval. */
+    public VendorEventGate(int confirmationMs, int minFresh) {
+        confirmationSeconds = confirmationMs / 1000.0; this.minFresh = Math.max(1, minFresh);
+    }
     public boolean accept(List<Double> timestamps, double now) {
         if (timestamps.isEmpty()) { consecutive = 0; return false; }
         double max = timestamps.stream().mapToDouble(Double::doubleValue).max().getAsDouble();
@@ -19,7 +24,7 @@ public final class VendorEventGate {
         if (lastRead < 0 || now - lastRead > .65) consecutive = 0;
         latest = max;
         lastRead = now;
-        if (fresh < 4) { consecutive = 0; burstStart = -1; return false; }
+        if (fresh < minFresh) { consecutive = 0; burstStart = -1; return false; }
         if (consecutive == 0) burstStart = now;
         consecutive++;
         if (consecutive >= 2 && (confirmationSeconds == 0 || now - burstStart + 1e-6 >= confirmationSeconds)) {

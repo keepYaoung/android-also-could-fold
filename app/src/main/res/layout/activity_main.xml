@@ -53,36 +53,42 @@
             android:layout_marginTop="24dp"
             android:layout_marginEnd="24dp"
             android:background="@drawable/bg_box"
-            android:orientation="vertical"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
             android:padding="20dp">
 
-            <TextView
-                android:id="@+id/status_label"
-                android:layout_width="match_parent"
+            <LinearLayout
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:textColor="@color/text_tertiary"
-                android:textSize="13sp"
-                android:textStyle="bold" />
+                android:layout_weight="1"
+                android:orientation="vertical">
 
-            <TextView
-                android:id="@+id/status"
-                android:layout_width="match_parent"
+                <TextView
+                    android:id="@+id/status_label"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/text_tertiary"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/status"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:lineSpacingExtra="4sp"
+                    android:textColor="@color/text"
+                    android:textSize="17sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <Switch
+                android:id="@+id/toggle"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:lineSpacingExtra="4sp"
-                android:textColor="@color/text"
-                android:textSize="18sp"
-                android:textStyle="bold" />
+                android:layout_marginStart="16dp"
+                android:contentDescription="@string/btn_enable" />
         </LinearLayout>
-
-        <Button
-            android:id="@+id/toggle"
-            style="@style/PrimaryButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="24dp"
-            android:layout_marginTop="14dp"
-            android:layout_marginEnd="24dp" />
 
         <View style="@style/SectionGap" android:layout_width="match_parent" />
 
@@ -94,6 +100,7 @@
         <include android:id="@+id/row_v1" layout="@layout/row_status" />
         <include android:id="@+id/row_v2" layout="@layout/row_status" />
         <include android:id="@+id/row_v3" layout="@layout/row_status" />
+        <include android:id="@+id/row_v4" layout="@layout/row_status" />
 
         <TextView
             android:id="@+id/mode_description"
@@ -114,6 +121,16 @@
             android:layout_marginEnd="24dp"
             android:text="@string/mode_restart_note"
             android:textSize="13sp" />
+
+        <Button
+            android:id="@+id/save_mode"
+            style="@style/PrimaryButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="24dp"
+            android:layout_marginTop="14dp"
+            android:layout_marginEnd="24dp"
+            android:text="@string/save_mode" />
 
         <View style="@style/SectionGap" android:layout_width="match_parent" />
 
