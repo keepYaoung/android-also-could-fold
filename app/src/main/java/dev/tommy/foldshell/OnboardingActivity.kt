@@ -23,6 +23,9 @@ class OnboardingActivity : Activity() {
         fun notificationsGranted(context: Context) = Build.VERSION.SDK_INT < 33 ||
             context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
         fun steps(app: FoldApplication) = listOf(
+            // Intro page: always "done", so it never blocks and the first-incomplete lookup skips it.
+            Step("intro", "🧪", R.string.step_intro, R.string.ob_intro_title, R.string.ob_intro_body,
+                R.string.ob_intro_oem_body, R.string.ob_intro_cta, R.string.ob_intro_title, R.string.ob_intro_title) { true },
             Step("notifications", "🔔", R.string.step_notifications, R.string.ob_notif_title, R.string.ob_notif_body,
                 R.string.ob_notif_why, R.string.ob_notif_action, R.string.ob_notif_done, R.string.ob_notif_todo) { notificationsGranted(app) },
             Step("developer", "🛠️", R.string.step_developer, R.string.ob_dev_title, R.string.ob_dev_body,
@@ -32,6 +35,8 @@ class OnboardingActivity : Activity() {
             Step("pairing", "🔗", R.string.step_pairing, R.string.ob_pair_title, R.string.ob_pair_body,
                 R.string.ob_pair_why, R.string.ob_pair_action, R.string.ob_pair_done, R.string.ob_pair_todo) { app.paired },
         )
+        /** Requirement pages only (without the intro), in onboarding order. */
+        fun setupSteps(app: FoldApplication) = steps(app).drop(1)
         fun firstIncomplete(app: FoldApplication): Int {
             val all = steps(app)
             val index = all.indexOfFirst { !it.done() }
@@ -71,6 +76,7 @@ class OnboardingActivity : Activity() {
     private lateinit var title: TextView
     private lateinit var body: TextView
     private lateinit var status: TextView
+    private lateinit var whyTitle: TextView
     private lateinit var why: TextView
     private lateinit var action: Button
     private lateinit var alt: Button
@@ -88,7 +94,8 @@ class OnboardingActivity : Activity() {
             view.setPadding(view.paddingLeft, bars.top, view.paddingRight, bars.bottom); insets
         }
         dots = findViewById(R.id.dots); icon = findViewById(R.id.icon); title = findViewById(R.id.title)
-        body = findViewById(R.id.body); status = findViewById(R.id.status); why = findViewById(R.id.why)
+        body = findViewById(R.id.body); status = findViewById(R.id.status)
+        whyTitle = findViewById(R.id.why_title); why = findViewById(R.id.why)
         action = findViewById(R.id.action); alt = findViewById(R.id.alt); next = findViewById(R.id.next); skip = findViewById(R.id.skip)
         findViewById<Button>(R.id.lang).apply { text = Lang.label(this@OnboardingActivity); setOnClickListener { Lang.pick(this@OnboardingActivity) } }
         val density = resources.displayMetrics.density
@@ -113,10 +120,13 @@ class OnboardingActivity : Activity() {
         val step = steps[index]; val done = step.done()
         for (i in 0 until dots.childCount) dots.getChildAt(i).setBackgroundResource(if (i <= index) R.drawable.bg_dot_active else R.drawable.bg_dot)
         icon.text = step.icon; setTitle(step.title); title.setText(step.title); body.setText(step.body); why.setText(step.why)
+        val intro = step.key == "intro"
+        whyTitle.setText(if (intro) R.string.ob_intro_oem_title else R.string.why_title)
+        status.visibility = if (intro) View.GONE else View.VISIBLE
         status.text = (if (done) "✅  " else "⏳  ") + getString(if (done) step.doneText else step.todoText)
         action.setText(step.action); action.visibility = if (done) View.GONE else View.VISIBLE
         next.visibility = if (done) View.VISIBLE else View.GONE
-        next.setText(if (index >= steps.size - 1) R.string.onboarding_start else R.string.onboarding_next)
+        next.setText(if (intro) R.string.ob_intro_cta else if (index >= steps.size - 1) R.string.onboarding_start else R.string.onboarding_next)
         alt.setText(R.string.manual_pairing)
         alt.visibility = if (step.key == "pairing" && !done) View.VISIBLE else View.GONE
         skip.setText(if (step.key == "notifications") R.string.onboarding_skip_notif else R.string.onboarding_skip)

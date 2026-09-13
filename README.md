@@ -17,7 +17,7 @@ The folding animation in this project was inspired by [this post on r/GalaxyFold
 | --- | --- | --- |
 | **V2 · default, experimental** | Takes one in-memory snapshot at motion onset; a black gradient fades in from the right, then moves out to the right and dissolves as opening progresses; the snapshot dissolves into the live screen | The left half is captured; its center/hinge edge stays fixed while the outer left edge recedes when closing and returns when opening |
 | **V1 · live blur** | Right-heavy blur during opening | Left-half blur, strongest at the outside edge |
-| **V4 · snapshot + gradient blur, experimental** | The V2 snapshot plane with the V3 shade on top instead of V2’s linear gradient: the folding-away side darkens with the wide gradient and matching blur | Same on the inner left half |
+| **V4 · snapshot + gradient blur, experimental** | The V2 snapshot plane with the V3 shade on top instead of V2’s linear gradient: the folding-away side darkens with a much wider, darker gradient than V3 (60–100% of the pane, fully black at the edge) and matching blur | Same on the inner left half |
 | **V3 · flat gradient blur, experimental** | The live screen stays flat and is never captured; the region folding away, from the right edge inward in proportion to measured gyro rotation, darkens with a black gradient toward the edge and is blurred throughout | Same on the left half, from the outer left edge toward the hinge |
 
 Pick **V1 / V2 / V3 / V4** under **Effect mode** (`효과 방식`) in the app (`run --v4` for a USB trial). Mode changes

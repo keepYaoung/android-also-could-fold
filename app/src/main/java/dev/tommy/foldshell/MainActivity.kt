@@ -45,7 +45,7 @@ class MainActivity : Activity() {
         findViewById<Button>(R.id.lang).apply { text = Lang.label(this@MainActivity); setOnClickListener { Lang.pick(this@MainActivity) } }
         toggle.setOnCheckedChangeListener { _, checked ->
             if (checked == app.enabled) return@setOnCheckedChangeListener
-            if (checked && !app.paired) { toggle.isChecked = false; openSetup(3) }
+            if (checked && !app.paired) { toggle.isChecked = false; openSetup(4) }
             else app.setEnabled(checked)
             render()
         }
@@ -87,11 +87,11 @@ class MainActivity : Activity() {
         saveMode.isEnabled = dirty
         saveMode.setText(if (dirty) R.string.save_mode else R.string.saved_mode)
         intensityValue.text = "${app.intensity}%"
-        val steps = OnboardingActivity.steps(app)
+        val steps = OnboardingActivity.setupSteps(app)
         for (i in steps.indices) {
             val done = steps[i].done()
             stepRows[i].bindRow(steps[i].icon, getString(steps[i].label), getString(if (done) steps[i].doneText else steps[i].todoText),
-                getString(if (done) R.string.done else R.string.set_up), getColor(if (done) R.color.success else R.color.primary)) { openSetup(i) }
+                getString(if (done) R.string.done else R.string.set_up), getColor(if (done) R.color.success else R.color.primary)) { openSetup(i + 1) }
         }
     }
     private fun showLicenses() {

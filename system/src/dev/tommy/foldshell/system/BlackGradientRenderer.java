@@ -246,15 +246,17 @@ final class BlackGradientRenderer {
 
     /** The wide, deepening shade shared by V3 (alone) and V4 (over the V2 plane). Same profile as flatRegions. */
     private void drawShade(Canvas canvas, int pane, float intensity) {
-        float reach = CoverReveal.maskReach(coverProgress), strength = CoverReveal.maskStrength(coverProgress);
+        // V4 (shade over the snapshot) is far wider and darker than V3's shade alone.
+        boolean wide = shade && !flatMask;
+        float reach = CoverReveal.maskReach(coverProgress, wide), strength = CoverReveal.maskStrength(coverProgress);
         int start = Math.round(pane * (inner ? reach : 1 - reach));
-        int edgeAlpha = Math.round(255 * clamp(.94f * intensity) * strength);
+        int edgeAlpha = Math.round(255 * clamp((wide ? 1f : .94f) * intensity) * strength);
         if (edgeAlpha <= 0) return;
         int steps = 8;
         int[] colors = new int[steps + 1]; float[] stops = new float[steps + 1];
         for (int i = 0; i <= steps; i++) {
             stops[i] = i / (float) steps;
-            colors[i] = Color.argb(Math.round(edgeAlpha * CoverReveal.maskProfile(stops[i])), 0, 0, 0);
+            colors[i] = Color.argb(Math.round(edgeAlpha * CoverReveal.maskProfile(stops[i], wide)), 0, 0, 0);
         }
         paint.setAlpha(255);
         if (inner) {

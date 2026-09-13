@@ -310,7 +310,7 @@ public final class FoldShell implements SensorEventListener, DisplayManager.Disp
                 blurRegions.invoke(transaction, surface, !edgeBlur
                         ? BlurProfile.regions(width, height, radius, strongRight)
                         : mode.shade()
-                        ? BlurProfile.flatRegions(width, height, radius, strongRight, edgeDepth)
+                        ? BlurProfile.flatRegions(width, height, radius, strongRight, edgeDepth, mode == Mode.HYBRID)
                         : BlurProfile.perspectiveRegions(width, height, radius, strongRight, edgeDepth));
             } else {
                 // Closing cover keeps its uniform resolving effect.

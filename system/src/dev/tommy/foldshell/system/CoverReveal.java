@@ -60,9 +60,12 @@ public final class CoverReveal {
     }
     /** V3: fraction of the pane, from the outer edge inward, that the darkening reaches.
      *  Wide from the start so the effect reads as a soft shade rather than a moving stripe. */
-    public static float maskReach(float progress) {
+    public static float maskReach(float progress) { return maskReach(progress, false); }
+    /** wide: the V4 shade spans most of the pane from the start and reaches the hinge side. */
+    public static float maskReach(float progress, boolean wide) {
         if (!Float.isFinite(progress)) return 0;
-        return .25f + .55f * Math.max(0, Math.min(1, progress));
+        float p = Math.max(0, Math.min(1, progress));
+        return wide ? .6f + .4f * p : .25f + .55f * p;
     }
     /** V3: how dark the outer edge is, 0..1. Grows with measured rotation; visual calibration. */
     public static float maskStrength(float progress) {
@@ -71,10 +74,12 @@ public final class CoverReveal {
         return p * p * (3 - 2 * p);
     }
     /** Spatial profile across the shade, 0 at its inner start, 1 at the outer edge. Gentle ease-in. */
-    public static float maskProfile(float u) {
+    public static float maskProfile(float u) { return maskProfile(u, false); }
+    /** wide: a plain smoothstep, so far more of the span is already dark. */
+    public static float maskProfile(float u, boolean wide) {
         u = Math.max(0, Math.min(1, u));
         float s = u * u * (3 - 2 * u);
-        return (float) Math.pow(s, 1.6);
+        return wide ? s : (float) Math.pow(s, 1.6);
     }
     /** Perspective size for a front-facing plane receding by 0..0.18 camera distances. */
     public static float depthScale(float progress) {

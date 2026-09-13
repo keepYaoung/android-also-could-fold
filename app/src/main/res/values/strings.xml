@@ -101,5 +101,11 @@
     <string name="saved_mode">Saved</string>
     <string name="mode_v4">V4 · Snapshot + gradient blur</string>
     <string name="mode_v4_sub">V2 perspective plane with the V3 shade</string>
-    <string name="mode_v4_desc">Takes the V2 in-memory snapshot and recedes it in perspective, but instead of V2’s linear gradient it lays the V3 shade on top: the folding-away side darkens with a wide black gradient and is blurred to match. Same onset, capture rules and release timing as V2. Experimental.</string>
+    <string name="mode_v4_desc">Takes the V2 in-memory snapshot and recedes it in perspective, but instead of V2’s linear gradient it lays the V3 shade on top: the folding-away side darkens with a much wider, darker black gradient than V3 and is blurred to match. Same onset, capture rules and release timing as V2. Experimental.</string>
+    <string name="step_intro">About this project</string>
+    <string name="ob_intro_title">An experiment, not a product</string>
+    <string name="ob_intro_body">Fold Transition is an experimental project. It works only on Galaxy Z Fold7 (SM-F966N), relies on private Samsung APIs that can change with any update, and estimates hinge motion from a gyroscope because the public sensor reports only three angles. The quality of the effect cannot be guaranteed. Nothing is uploaded and no screen content is stored.</string>
+    <string name="ob_intro_oem_title">To Samsung and other device makers</string>
+    <string name="ob_intro_oem_body">If you work on these devices: please give designers and engineers more authority over how the device feels, and please open up the hinge angle data. A public, continuous hinge angle with low latency would let third-party developers build fold transitions that are accurate instead of estimated.</string>
+    <string name="ob_intro_cta">Got it, continue</string>
 </resources>

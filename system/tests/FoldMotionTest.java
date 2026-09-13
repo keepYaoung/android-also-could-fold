@@ -98,6 +98,10 @@ public class FoldMotionTest {
         }
         check(dev.tommy.foldshell.system.CoverReveal.maskStrength(5) == 1
                 && dev.tommy.foldshell.system.CoverReveal.maskReach(5) == .8f, "shade saturates");
+        check(dev.tommy.foldshell.system.CoverReveal.maskReach(0, true) == .6f
+                && dev.tommy.foldshell.system.CoverReveal.maskReach(1, true) == 1
+                && dev.tommy.foldshell.system.CoverReveal.maskProfile(.25f, true) > dev.tommy.foldshell.system.CoverReveal.maskProfile(.25f),
+                "V4 shade is wider and darker than V3's");
         check(dev.tommy.foldshell.system.CoverReveal.maskProfile(0) == 0
                 && dev.tommy.foldshell.system.CoverReveal.maskProfile(1) == 1
                 && dev.tommy.foldshell.system.CoverReveal.maskProfile(.25f) < .06f

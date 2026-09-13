@@ -52,9 +52,14 @@ public final class BlurProfile {
     public static final int FLAT_STRIPS = 24;
     public static float[][] flatRegions(int width, int height, int radius,
                                         boolean strongRight, float progress) {
+        return flatRegions(width, height, radius, strongRight, progress, false);
+    }
+    /** wide: V4's broader, darker shade; the blur spans and ramps the same way. */
+    public static float[][] flatRegions(int width, int height, int radius,
+                                        boolean strongRight, float progress, boolean wide) {
         if (width <= 0 || height <= 0 || radius <= 0 || !Float.isFinite(progress) || progress <= 0)
             return new float[0][];
-        float reach = CoverReveal.maskReach(progress), strength = CoverReveal.maskStrength(progress);
+        float reach = CoverReveal.maskReach(progress, wide), strength = CoverReveal.maskStrength(progress);
         if (strength <= 0) return new float[0][];
         float from = strongRight ? (1 - reach) * width : 0, to = strongRight ? width : reach * width;
         int boosted = Math.min(360, Math.round(radius * 1.8f));
@@ -62,7 +67,7 @@ public final class BlurProfile {
         for (int i = 0; i < FLAT_STRIPS; i++) {
             float l = from + (to - from) * i / FLAT_STRIPS, r = from + (to - from) * (i + 1) / FLAT_STRIPS;
             float x = (i + .5f) / FLAT_STRIPS;
-            float t = CoverReveal.maskProfile(strongRight ? x : 1 - x);   // 0 inner start, 1 outer edge
+            float t = CoverReveal.maskProfile(strongRight ? x : 1 - x, wide);   // 0 inner start, 1 outer edge
             addRegion(all, Math.max(1, Math.round(boosted * (.08f + .92f * t) * (.4f + .6f * strength))),
                     Math.min(1, (.03f + .97f * t) * strength), l, 0, r, height, width, height);
         }
