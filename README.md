@@ -74,9 +74,13 @@ rotation, panel handoff and physical appearance still need device verification.
 
 ## Compatibility and limitations
 
-The earlier blur engine has been tested on **Galaxy Z Fold7 SM-F966N / Android 16**.
-Execution is blocked on other models; other Fold7 variants are not yet supported. The engine depends on Samsung's private SurfaceControl APIs, so
-compatibility needs to be checked after One UI updates.
+The engine has been tested on **Galaxy Z Fold7 SM-F966N / Android 16**. Since 0.5.0
+the allowlist covers the whole **Fold7 family (SM-F966x)** and the **Galaxy Z Fold8 /
+Fold8 Ultra family (SM-F976x)**; those other models are allowed but **unverified**.
+Panel sizes are measured at runtime rather than assumed, but the engine depends on
+Samsung's private SurfaceControl and capture APIs, which can differ per firmware, so
+Fold8 needs a physical check before it can be called supported. Other models are
+blocked.
 
 On this device, the public hinge sensor mainly reports **0 / 90 / 180 degrees**.
 V2 and V3 use one 200ms sustained-signal confirmation window for early opening/closing.
@@ -136,7 +140,8 @@ python3 tools/fold-system.py run --seconds 600 --early
 
 The `run` command builds and tests the engine, transfers its DEX file, and starts
 it. No APK is installed, but an executable file and a lock file are created under
-`/data/local/tmp` on the device. The supported model is **SM-F966N**, as noted above.
+`/data/local/tmp` on the device. Allowed models are the **SM-F966x** and **SM-F976x**
+families, as noted above.
 If multiple devices are connected, add `-s SERIAL` to ADB commands and
 `--serial SERIAL` to the Python command.
 

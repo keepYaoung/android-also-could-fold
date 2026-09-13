@@ -76,6 +76,20 @@ public class FoldMotionTest {
         check(missing.secure == -1 && missing.protectedContent == -1,
                 "partial policy resolution never starts configuring a capture");
     }
+    static void testDeviceSupport() {
+        check(dev.tommy.foldshell.system.DeviceSupport.supported("SM-F966N")
+                && dev.tommy.foldshell.system.DeviceSupport.supported("SM-F966B")
+                && dev.tommy.foldshell.system.DeviceSupport.supported("SM-F976N")
+                && dev.tommy.foldshell.system.DeviceSupport.supported("SM-F976U1"),
+                "Fold7 and Fold8 families are allowed");
+        check(!dev.tommy.foldshell.system.DeviceSupport.supported("SM-F956N")
+                && !dev.tommy.foldshell.system.DeviceSupport.supported("SM-S938N")
+                && !dev.tommy.foldshell.system.DeviceSupport.supported(null),
+                "older folds and other phones stay blocked");
+        check(dev.tommy.foldshell.system.DeviceSupport.verified("SM-F966N")
+                && !dev.tommy.foldshell.system.DeviceSupport.verified("SM-F976N"),
+                "only the tested model counts as verified");
+    }
     static void testFlatMask() {
         dev.tommy.foldshell.system.FoldShell.Mode parse = dev.tommy.foldshell.system.FoldShell.Mode.parse("v3");
         check(parse == dev.tommy.foldshell.system.FoldShell.Mode.MASK
@@ -544,7 +558,7 @@ public class FoldMotionTest {
         gentleReverse.reverse(300);
         check(gentleReverse.amount(1200) > 0 && gentleReverse.active(), "V3 reversal release is longer than 700ms");
         check(gentleReverse.amount(1700) == 0 && !gentleReverse.active(), "V3 reversal release completes at 1.4s");
-        testProfile(); testGate(); testCapturePolicy(); testFlatMask();
+        testProfile(); testGate(); testCapturePolicy(); testFlatMask(); testDeviceSupport();
         System.out.println("FoldMotionTest: PASS");
     }
 }

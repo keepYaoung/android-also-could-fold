@@ -32,7 +32,7 @@
     <string name="view">表示</string>
     <string name="setup_again">セットアップ手順をもう一度見る</string>
     <string name="setup_again_sub">通知・開発者向けオプション・ワイヤレスデバッグ・ペア設定を最初から案内します</string>
-    <string name="footer">v%1$s · MIT · Galaxy Z Fold7 (SM-F966N) 専用 · Shizuku 不要</string>
+    <string name="footer">v%1$s · MIT · Galaxy Z Fold7 / Fold8 · Shizuku 不要</string>
     <string name="done">完了</string>
     <string name="set_up">設定する</string>
     <string name="onboarding_next">次へ</string>
@@ -104,7 +104,7 @@
     <string name="mode_v4_desc">V2 と同じく画面をメモリにキャプチャして遠近方向に後退させ、V2 の線形グラデーションの代わりに V3 のシェードを重ねます。折れる側が V3 よりはるかに広く濃い黒のグラデーションで暗くなり、それに合わせてブラーがかかります。検出・キャプチャ規則・解放タイミングは V2 と同じです。実験機能です。</string>
     <string name="step_intro">このプロジェクトについて</string>
     <string name="ob_intro_title">製品ではなく実験です</string>
-    <string name="ob_intro_body">Fold Transition は実験的なプロジェクトです。Galaxy Z Fold7（SM-F966N）でのみ動作し、アップデートで変わり得る Samsung の非公開 API に依存し、公開センサーが3つの角度しか返さないためヒンジの動きをジャイロで推定しています。エフェクトの品質は保証できません。何もアップロードせず、画面の内容も保存しません。</string>
+    <string name="ob_intro_body">Fold Transition は実験的なプロジェクトです。Galaxy Z Fold7 と Fold8 で動作しますが検証は Fold7（SM-F966N）のみで、アップデートで変わり得る Samsung の非公開 API に依存し、公開センサーが3つの角度しか返さないためヒンジの動きをジャイロで推定しています。エフェクトの品質は保証できません。何もアップロードせず、画面の内容も保存しません。</string>
     <string name="ob_intro_oem_title">Samsung および端末メーカーの皆さまへ</string>
     <string name="ob_intro_oem_body">この端末に携わる方へお願いです。端末の使い心地を決める権限を、デザイナーとエンジニアにもっと委ねてください。そしてヒンジ角度のデータを公開してください。低遅延で公開された連続ヒンジ角度があれば、サードパーティ開発者も推定ではなく正確な折りたたみトランジションを作れます。</string>
     <string name="ob_intro_cta">わかりました、続ける</string>

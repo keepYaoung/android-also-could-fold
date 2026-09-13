@@ -68,7 +68,11 @@ V2 캡처는 메모리에 잠깐 보관하며 파일 저장·업로드하지 않
 
 ## 지원 범위
 
-기존 블러 엔진의 실제 검증 기기는 **Galaxy Z Fold7 SM-F966N / Android 16**입니다.
+엔진의 실제 검증 기기는 **Galaxy Z Fold7 SM-F966N / Android 16**입니다. 0.5.0부터
+허용 목록은 **Fold7 계열 전체(SM-F966x)**와 **Galaxy Z Fold8 / Fold8 Ultra 계열(SM-F976x)**을
+포함하지만, SM-F966N 외 모델은 **미검증**입니다. 패널 크기는 가정하지 않고 실행 시 측정하지만,
+삼성 비공개 SurfaceControl·캡처 API가 펌웨어마다 다를 수 있어 Fold8은 실기 확인 전까지
+"지원"이라고 말할 수 없습니다.
 다른 모델은 실행을 차단하며, 다른 지역의 Fold7 모델도 아직 지원하지 않습니다. Samsung의 비공개 SurfaceControl API에
 의존하므로 One UI 업데이트 후 호환성 확인이 필요합니다.
 
@@ -125,7 +129,7 @@ python3 tools/fold-system.py run --seconds 600 --early
 
 `run`이 빌드와 테스트를 수행하고 DEX를 전송한 뒤 실행합니다. APK 설치는 없지만,
 기기의 `/data/local/tmp`에 실행 파일과 잠금 파일은 생성됩니다. 지원 기기는 위에
-명시한 **SM-F966N**이며, 여러 기기가 연결되었다면 ADB에는 `-s SERIAL`,
+명시한 **SM-F966x·SM-F976x 계열**이며, 여러 기기가 연결되었다면 ADB에는 `-s SERIAL`,
 Python 명령에는 `--serial SERIAL`을 추가하세요.
 
 `READY`가 나오면 커버·내부 화면·켜진 잠금 화면에서 천천히 접었다 펼쳐보세요.

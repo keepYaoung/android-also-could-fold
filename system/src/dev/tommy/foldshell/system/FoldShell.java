@@ -113,7 +113,8 @@ public final class FoldShell implements SensorEventListener, DisplayManager.Disp
         return object.getClass().getField(field).getInt(object);
     }
     private static boolean inner(Object info) throws Exception {
-        // Device-specific profile verified against SM-F966N: 411dp cover, 750dp inner.
+        // Verified against SM-F966N: 411dp cover, 750dp inner. Fold8 panels are wider but
+        // keep the same side of this 600dp threshold; measured at runtime, never assumed.
         // Use shortest side so rotating the cover cannot turn it into an inner display.
         return Math.min(value(info, "logicalWidth"), value(info, "logicalHeight")) * 160f
                 / value(info, "logicalDensityDpi") >= 600f;
@@ -156,6 +157,7 @@ public final class FoldShell implements SensorEventListener, DisplayManager.Disp
         // The main Looper refuses quitSafely(), which previously crashed the process
         // at expiry (exit 137). Close, flush, and exit explicitly instead.
         if (duration > 0) handler.postDelayed(() -> exit(0), duration);
+        log("MODEL " + android.os.Build.MODEL + " verified=" + DeviceSupport.verified(android.os.Build.MODEL));
         log("READY sensor=" + hinge.getName() + " durationMs=" + duration
                 + " effects=physical-fold-only backend=" + mode.label());
     }
@@ -371,7 +373,7 @@ public final class FoldShell implements SensorEventListener, DisplayManager.Disp
     }
     public static FoldShell persistent(float intensity, Mode mode) throws Exception {
         if (android.os.Process.myUid() != 2000) throw new IllegalStateException("Engine must run as ADB shell");
-        if (!android.os.Build.MODEL.equals("SM-F966N")) throw new IllegalStateException("Unverified device: " + android.os.Build.MODEL);
+        if (!DeviceSupport.supported(android.os.Build.MODEL)) throw new IllegalStateException("Unsupported device: " + android.os.Build.MODEL);
         Class<?> at = Class.forName("android.app.ActivityThread");
         Object thread = at.getMethod("currentActivityThread").invoke(null);
         if (thread == null) thread = at.getMethod("systemMain").invoke(null);
@@ -390,7 +392,7 @@ public final class FoldShell implements SensorEventListener, DisplayManager.Disp
 
     public static void main(String[] args) throws Exception {
         if (android.os.Process.myUid() != 2000) throw new IllegalStateException("Run as ADB shell");
-        if (!android.os.Build.MODEL.equals("SM-F966N")) throw new IllegalStateException("Unverified device profile");
+        if (!DeviceSupport.supported(android.os.Build.MODEL)) throw new IllegalStateException("Unsupported device: " + android.os.Build.MODEL);
         long seconds = args.length == 0 ? 600 : Long.parseLong(args[0]);
         if (seconds < 1 || seconds > 3600) throw new IllegalArgumentException("duration must be 1..3600 seconds");
         int exitCode = 0;
