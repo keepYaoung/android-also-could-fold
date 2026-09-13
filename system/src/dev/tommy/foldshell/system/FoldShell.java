@@ -378,6 +378,7 @@ public final class FoldShell implements SensorEventListener, DisplayManager.Disp
     public static FoldShell persistent(float intensity, Mode mode) throws Exception {
         if (android.os.Process.myUid() != 2000) throw new IllegalStateException("Engine must run as ADB shell");
         if (!DeviceSupport.supported(android.os.Build.MODEL)) throw new IllegalStateException("Unsupported device: " + android.os.Build.MODEL);
+        log("SHARED_MEMORY " + ShellProcess.ensureApplicationSharedMemory());
         Class<?> at = Class.forName("android.app.ActivityThread");
         Object thread = at.getMethod("currentActivityThread").invoke(null);
         if (thread == null) thread = at.getMethod("systemMain").invoke(null);
@@ -406,6 +407,7 @@ public final class FoldShell implements SensorEventListener, DisplayManager.Disp
             file.setLength(0);
             file.writeBytes(Integer.toString(android.os.Process.myPid()) + "\n");
             Looper.prepareMainLooper();
+            log("SHARED_MEMORY " + ShellProcess.ensureApplicationSharedMemory());
             Class<?> activityThread = Class.forName("android.app.ActivityThread");
             Object thread = activityThread.getMethod("systemMain").invoke(null);
             Context system = (Context) activityThread.getMethod("getSystemContext").invoke(thread);

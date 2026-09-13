@@ -38,6 +38,7 @@ public final class FoldSensorProbe implements SensorEventListener {
         if (seconds < 1 || seconds > 120) throw new IllegalArgumentException("Probe duration 1..120");
         Looper.prepareMainLooper();
         Class<?> cls = Class.forName("android.app.ActivityThread");
+        System.out.println("SHARED_MEMORY " + ShellProcess.ensureApplicationSharedMemory());
         Object thread = cls.getMethod("systemMain").invoke(null);
         Context system = (Context) cls.getMethod("getSystemContext").invoke(thread);
         Context context = system.createPackageContext("com.android.shell", 0);
