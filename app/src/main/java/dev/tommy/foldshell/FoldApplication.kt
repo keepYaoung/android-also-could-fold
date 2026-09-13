@@ -5,10 +5,12 @@ import android.app.Notification
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.RemoteInput
+import android.content.Context
 import android.content.Intent
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
+import android.provider.Settings
 import io.github.muntashirakon.adb.AdbStream
 import java.io.BufferedReader
 import java.io.InputStreamReader
@@ -16,9 +18,12 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 class FoldApplication : Application() {
+    companion object { val MODES = listOf("v1", "v2", "v3") }
     val prefs by lazy { getSharedPreferences("fold", MODE_PRIVATE) }
     val main = Handler(Looper.getMainLooper())
-    @Volatile var message = "최초 연결 설정이 필요합니다"; private set
+    /** Status shown in the UI: a string resource plus an optional raw detail line from the engine. */
+    @Volatile var messageRes = R.string.msg_setup_required; private set
+    @Volatile var messageDetail: String? = null; private set
     @Volatile var pairingPort = 0; private set
     @Volatile private var connectPort = 0
     @Volatile private var setupUntil = 0L
@@ -33,48 +38,67 @@ class FoldApplication : Application() {
     private lateinit var discovery: AdbDiscovery
     val enabled get() = prefs.getBoolean("enabled", false)
     val intensity get() = prefs.getInt("intensity", 100)
-    val v2 get() = prefs.getBoolean("v2", true)
+    /** "v1" live blur, "v2" snapshot + gradient, "v3" flat gradient blur. Migrates the older v2 switch. */
+    val mode: String get() = prefs.getString("mode", null) ?: if (prefs.getBoolean("v2", true)) "v2" else "v1"
     val paired get() = prefs.getBoolean("paired", false)
+    // Global settings are world-readable; the app only reads them and never writes.
+    val developerOptionsEnabled get() = Settings.Global.getInt(contentResolver, Settings.Global.DEVELOPMENT_SETTINGS_ENABLED, 0) == 1
+    val wirelessDebuggingEnabled get() = Settings.Global.getInt(contentResolver, "adb_wifi_enabled", 0) == 1
     val setupActive get() = SystemClock.elapsedRealtime() < setupUntil
+    /** Resources in the app-selected language, for notifications and other non-Activity text. */
+    fun localized(): Context = Lang.wrap(this)
+    fun messageText(context: Context): String =
+        context.getString(messageRes) + (messageDetail?.let { "\n" + it } ?: "")
+    private fun say(res: Int, detail: String? = null) { messageRes = res; messageDetail = detail }
     override fun onCreate() {
         super.onCreate()
-        getSystemService(NotificationManager::class.java).createNotificationChannel(
-            android.app.NotificationChannel("fold", "접힘 효과 실행 상태", NotificationManager.IMPORTANCE_LOW))
-        getSystemService(NotificationManager::class.java).createNotificationChannel(
-            android.app.NotificationChannel("fold-pairing", "최초 연결 · 코드 입력", NotificationManager.IMPORTANCE_HIGH))
+        createChannels()
         discovery = AdbDiscovery(this) { pairing, port ->
             if (pairing) { pairingPort = port; if (setupActive) main.post { pairingNotification() } }
             else { connectPort = port; retryAt = 0 }
         }
-        io.scheduleWithFixedDelay({ try { reconcile() } catch (_: Exception) { failure("연결을 다시 확인하고 있습니다") } }, 1, 5, TimeUnit.SECONDS)
+        io.scheduleWithFixedDelay({ try { reconcile() } catch (_: Exception) { failure(R.string.msg_rechecking) } }, 1, 5, TimeUnit.SECONDS)
+    }
+    private fun createChannels() {
+        val res = localized()
+        val manager = getSystemService(NotificationManager::class.java)
+        manager.createNotificationChannel(android.app.NotificationChannel("fold", res.getString(R.string.channel_status), NotificationManager.IMPORTANCE_LOW))
+        manager.createNotificationChannel(android.app.NotificationChannel("fold-pairing", res.getString(R.string.channel_pairing), NotificationManager.IMPORTANCE_HIGH))
+    }
+    /** Re-labels channels and any visible notifications after a language change. */
+    fun refreshNotifications() {
+        createChannels()
+        if (setupActive) pairingNotification()
+        if (enabled || setupActive) startForegroundService(Intent(this, KeepAliveService::class.java))
     }
     fun preparePairing() {
         setupUntil = SystemClock.elapsedRealtime() + 600000
         startForegroundService(Intent(this, KeepAliveService::class.java))
         discovery.start()
-        message = "설정에서 ‘페어링 코드로 기기 페어링’을 여세요"
+        say(R.string.msg_open_pair_dialog)
         pairingNotification()
     }
     private fun pairingNotification() {
         if (!setupActive) return
+        val res = localized()
         val reply = PendingIntent.getBroadcast(this, 22, Intent(this, PairingReceiver::class.java),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE)
-        val input = RemoteInput.Builder("code").setLabel("6자리 페어링 코드").build()
+        val input = RemoteInput.Builder("code").setLabel(res.getString(R.string.hint_code)).build()
         val open = PendingIntent.getActivity(this, 22, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
         val notification = Notification.Builder(this, "fold-pairing")
-            .setSmallIcon(android.R.drawable.ic_lock_lock).setContentTitle("Fold Transition 최초 연결")
-            .setContentText(if (pairingPort > 0) "코드 창을 닫지 말고 아래에 6자리 코드를 입력하세요" else "설정에서 페어링 코드 창을 열어주세요")
-            .addAction(Notification.Action.Builder(null, "코드 입력", reply).addRemoteInput(input).build())
-            .setStyle(Notification.BigTextStyle().bigText("설정의 페어링 코드 창을 유지한 채 이 알림을 펼쳐 ‘코드 입력’을 누르세요."))
+            .setSmallIcon(android.R.drawable.ic_lock_lock).setContentTitle(res.getString(R.string.notif_pair_title))
+            .setContentText(res.getString(if (pairingPort > 0) R.string.notif_pair_text_ready else R.string.notif_pair_text_wait))
+            .addAction(Notification.Action.Builder(null, res.getString(R.string.notif_pair_action), reply).addRemoteInput(input).build())
+            .setStyle(Notification.BigTextStyle().bigText(res.getString(R.string.notif_pair_big)))
             .setContentIntent(open).setOngoing(true).setOnlyAlertOnce(true)
             .setTimeoutAfter(600000).build()
         getSystemService(NotificationManager::class.java).notify(22, notification)
     }
     fun pair(port: Int, code: String) {
         if (port !in 1..65535 || !code.matches(Regex("[0-9]{6}"))) {
-            message = "페어링 포트와 6자리 코드를 확인해주세요"; return
+            say(R.string.msg_check_port_code); return
         }
-        message = "페어링 중"
+        say(R.string.msg_pairing)
         io.execute {
             try {
                 val manager = adb ?: LocalAdb(this).also { adb = it }
@@ -82,11 +106,11 @@ class FoldApplication : Application() {
                 prefs.edit().putBoolean("paired", true).apply()
                 setupUntil = 0
                 getSystemService(NotificationManager::class.java).cancel(22)
-                message = "최초 연결 완료 · 효과를 켜주세요"
+                say(R.string.msg_paired)
                 retryAt = 0
                 if (enabled) reconcile()
             } catch (_: Exception) {
-                message = "페어링 실패 · 새 코드 창의 포트와 코드를 확인해주세요"
+                say(R.string.msg_pair_failed)
             }
         }
     }
@@ -103,7 +127,7 @@ class FoldApplication : Application() {
         }
         io.execute {
             if (enabled) reconcile() else {
-                shutdownStream(); message = "꺼짐"
+                shutdownStream(); say(R.string.msg_off)
                 if (!setupActive) main.post { discovery.stop(); stopService(Intent(this, KeepAliveService::class.java)) }
             }
         }
@@ -111,43 +135,45 @@ class FoldApplication : Application() {
     fun stopDiscoveryIfIdle() {
         if (!enabled && !setupActive) discovery.stop()
     }
-    fun setV2(value: Boolean) {
-        prefs.edit().putBoolean("v2", value).apply()
+    fun setMode(value: String) {
+        require(value in MODES) { "Unknown mode" }
+        if (value == mode) return
+        prefs.edit().putString("mode", value).apply()
         engineError = null; retryAt = 0
         io.execute { shutdownStream(); if (enabled) reconcile() }
     }
     fun setIntensity(value: Int) {
         prefs.edit().putInt("intensity", value.coerceIn(50, 150)).apply()
-        io.execute { if (ready) try { send("INTENSITY ${intensity / 100f}") } catch (_: Exception) { failure("재연결 대기") } }
+        io.execute { if (ready) try { send("INTENSITY ${intensity / 100f}") } catch (_: Exception) { failure(R.string.msg_reconnect_wait) } }
     }
     fun restore() {
         if (enabled || setupActive) discovery.start()
         // Network and shell work never run on the UI thread.
-        if (enabled) io.execute { try { reconcile() } catch (_: Exception) { failure("재연결 대기") } }
+        if (enabled) io.execute { try { reconcile() } catch (_: Exception) { failure(R.string.msg_reconnect_wait) } }
     }
     private fun reconcile() {
         if (!enabled) return
-        engineError?.let { message = it; return }
-        if (!paired) { if (!setupActive) message = "최초 연결 설정을 먼저 완료해주세요"; return }
+        engineError?.let { say(R.string.msg_engine_error, it); return }
+        if (!paired) { if (!setupActive) say(R.string.msg_setup_first); return }
         val now = SystemClock.elapsedRealtime()
         if (stream != null) {
-            if (now - lastReply > 25000) { failure("엔진 응답 없음 · 재연결 대기"); return }
-            try { send("STATUS") } catch (_: Exception) { failure("연결 끊김 · 자동 재연결 대기") }
+            if (now - lastReply > 25000) { failure(R.string.msg_engine_silent); return }
+            try { send("STATUS") } catch (_: Exception) { failure(R.string.msg_disconnected) }
             return
         }
         if (now < retryAt) return
         if (connectPort == 0) {
-            message = "무선 디버깅 연결 대기 · Wi-Fi와 무선 디버깅을 켜주세요"
+            say(if (!wirelessDebuggingEnabled) R.string.msg_wireless_off else R.string.msg_wireless_wait)
             main.post { discovery.stop(); discovery.start() }; retryAt = now + 10000; return
         }
-        message = "블러 엔진 연결 중"
+        say(R.string.msg_connecting)
         try {
             val manager = adb ?: LocalAdb(this).also { adb = it }
             manager.disconnect()
             if (!manager.connect("127.0.0.1", connectPort)) throw IllegalStateException("ADB unavailable")
             // Source path comes from PackageManager; it is never supplied by a user or mDNS.
             val apk = applicationInfo.sourceDir.replace("'", "'\\''")
-            val command = "CLASSPATH='$apk' app_process /system/bin dev.tommy.foldshell.system.LocalFoldDaemon ${intensity / 100f} ${if (v2) "v2" else "v1"}"
+            val command = "CLASSPATH='$apk' app_process /system/bin dev.tommy.foldshell.system.LocalFoldDaemon ${intensity / 100f} $mode"
             val current = manager.openStream("shell,raw:$command")
             stream = current; ready = false; lastReply = now
             Thread({
@@ -159,25 +185,25 @@ class FoldApplication : Application() {
                                 if (stream === current) {
                                     lastReply = SystemClock.elapsedRealtime()
                                     when {
-                                        line == "FOLD RUNNING" -> { ready = true; failures = 0; message = "실행 중 · 앱 자체 연결" }
+                                        line == "FOLD RUNNING" -> { ready = true; failures = 0; say(R.string.msg_running) }
                                         line.startsWith("FOLD ERROR") -> {
-                                            engineError = line.removePrefix("FOLD ") + " · 끈 뒤 다시 켜서 재시도"
-                                            message = engineError!!
+                                            engineError = line.removePrefix("FOLD ERROR").trim()
+                                            say(R.string.msg_engine_error, engineError)
                                             shutdownStream()
                                         }
-                                        line == "FOLD STOPPED" -> message = "꺼짐"
+                                        line == "FOLD STOPPED" -> say(R.string.msg_off)
                                     }
                                 }
                             }
                         }
                     }
                 } catch (_: Exception) {} finally {
-                    io.execute { if (stream === current) failure("연결 끊김 · 자동 재연결 대기") }
+                    io.execute { if (stream === current) failure(R.string.msg_disconnected) }
                 }
             }, "FoldEngineOutput").apply { isDaemon = true; start() }
         } catch (_: Exception) {
             connectPort = 0
-            failure("무선 디버깅 연결 대기 · 필요하면 최초 연결을 다시 확인해주세요")
+            failure(R.string.msg_wireless_wait_recheck)
             main.post { discovery.stop(); discovery.start() }
         }
     }
@@ -191,10 +217,10 @@ class FoldApplication : Application() {
         try { old?.close() } catch (_: Exception) {}
         try { adb?.disconnect() } catch (_: Exception) {}
     }
-    private fun failure(text: String) {
+    private fun failure(res: Int) {
         shutdownStream()
         failures = (failures + 1).coerceAtMost(5)
         retryAt = SystemClock.elapsedRealtime() + (1000L shl failures).coerceAtMost(30000)
-        if (enabled) message = text
+        if (enabled) say(res)
     }
 }

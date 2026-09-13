@@ -1,0 +1,16 @@
+<resources>
+    <color name="bg">#FFFFFF</color>
+    <color name="surface">#F2F4F6</color>
+    <color name="text">#191F28</color>
+    <color name="text_secondary">#6B7684</color>
+    <color name="text_tertiary">#8B95A1</color>
+    <color name="primary">#3182F6</color>
+    <color name="primary_pressed">#2B6FD6</color>
+    <color name="on_primary">#FFFFFF</color>
+    <color name="primary_soft">#E8F3FF</color>
+    <color name="success">#0BA36A</color>
+    <color name="todo">#D9480F</color>
+    <color name="disabled">#E5E8EB</color>
+    <color name="on_disabled">#B0B8C1</color>
+    <color name="track">#D1D6DB</color>
+</resources>

@@ -76,6 +76,50 @@ public class FoldMotionTest {
         check(missing.secure == -1 && missing.protectedContent == -1,
                 "partial policy resolution never starts configuring a capture");
     }
+    static void testFlatMask() {
+        dev.tommy.foldshell.system.FoldShell.Mode parse = dev.tommy.foldshell.system.FoldShell.Mode.parse("v3");
+        check(parse == dev.tommy.foldshell.system.FoldShell.Mode.MASK
+                && dev.tommy.foldshell.system.FoldShell.Mode.parse("v2") == dev.tommy.foldshell.system.FoldShell.Mode.SNAPSHOT
+                && dev.tommy.foldshell.system.FoldShell.Mode.parse("v1") == dev.tommy.foldshell.system.FoldShell.Mode.BLUR
+                && dev.tommy.foldshell.system.FoldShell.Mode.parse(null) == dev.tommy.foldshell.system.FoldShell.Mode.BLUR,
+                "mode strings map to backends, unknown falls back to V1 blur");
+        check(dev.tommy.foldshell.system.CoverReveal.maskCoverage(0) == 0
+                && dev.tommy.foldshell.system.CoverReveal.maskCoverage(Float.NaN) == 0
+                && dev.tommy.foldshell.system.CoverReveal.maskCoverage(-1) == 0,
+                "no motion means no mask");
+        float previous = 0;
+        for (int i = 1; i <= 20; i++) {
+            float coverage = dev.tommy.foldshell.system.CoverReveal.maskCoverage(i / 20f);
+            check(coverage > previous && coverage <= .6f, "mask grows with measured rotation and never covers the hinge side");
+            previous = coverage;
+        }
+        check(dev.tommy.foldshell.system.CoverReveal.maskCoverage(5) == .6f, "mask coverage saturates");
+        for (boolean right : new boolean[]{false, true}) {
+            float[][] base = dev.tommy.foldshell.system.BlurProfile.regions(1000, 2200, 70, right);
+            float[][] flat = dev.tommy.foldshell.system.BlurProfile.flatRegions(1000, 2200, 70, right, .5f);
+            check(flat.length == base.length + dev.tommy.foldshell.system.BlurProfile.FLAT_STRIPS,
+                    "flat mode blurs the darkening region in strips");
+            for (int i = 0; i < base.length; i++) check(java.util.Arrays.equals(base[i], flat[i]),
+                    "flat mode preserves the interior blur gradient");
+            float edge = right ? 1000 * (1 - .3f) : 1000 * .3f;
+            float minX = 1000, maxX = 0, previousAlpha = right ? 0 : 2;
+            for (int i = base.length; i < flat.length; i++) {
+                float[] e = flat[i];
+                check(e[0] > 70 && e[0] <= 360 && e[2] >= 0 && e[3] == 0 && e[4] <= 1000 && e[5] == 2200,
+                        "strips are full-height vertical bands inside the pane");
+                check(right ? e[2] >= 500 : e[4] <= 500, "strips stay on the folding-away side of the pane");
+                check(right ? e[1] >= previousAlpha : e[1] <= previousAlpha, "blur strengthens toward the outer edge");
+                previousAlpha = e[1];
+                minX = Math.min(minX, e[2]); maxX = Math.max(maxX, e[4]);
+            }
+            check(minX <= edge && edge <= maxX, "strips cover the gradient boundary");
+            check(right ? maxX == 1000 : minX == 0, "strips reach the outer edge");
+        }
+        check(dev.tommy.foldshell.system.BlurProfile.flatRegions(1000, 2200, 70, true, 0).length == 32,
+                "no mask means no extra band");
+        check(dev.tommy.foldshell.system.BlurProfile.flatRegions(1000, 2200, 0, true, .5f).length == 0,
+                "edge band disappears when base blur releases");
+    }
     public static void main(String[] args) throws Exception {
         FoldMotion m = new FoldMotion();
         m.display(true, 0);
@@ -453,7 +497,7 @@ public class FoldMotionTest {
         check(idleDissolve.active(), "V2 idle dissolve lasts beyond old 420ms fade");
         idleDissolve.amount(3120);
         check(!idleDissolve.active(), "idle dissolve finishes after 620ms");
-        testProfile(); testGate(); testCapturePolicy();
+        testProfile(); testGate(); testCapturePolicy(); testFlatMask();
         System.out.println("FoldMotionTest: PASS");
     }
 }

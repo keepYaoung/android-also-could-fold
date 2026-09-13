@@ -6,8 +6,8 @@
 
 An experimental Android app for physical fold and unfold transitions on Galaxy Z
 Fold. It keeps One UI and controls the compositor through a built-in local ADB
-client. Version 0.4.0 adds **V2: cover snapshot + black gradient**, with the earlier
-**V1 live blur** available through the in-app switch.
+client. Version 0.5.0 offers three modes in one APK: **V1 live blur**, **V2 cover
+snapshot + perspective black gradient**, and the new **V3 flat gradient blur**.
 
 The folding animation in this project was inspired by [this post on r/GalaxyFold](https://www.reddit.com/r/GalaxyFold/comments/1wcacld/tried_to_recreate_the_iphone_duo_animation_on_my/). Thanks to the original creator for the inspiration.
 
@@ -17,9 +17,17 @@ The folding animation in this project was inspired by [this post on r/GalaxyFold
 | --- | --- | --- |
 | **V2 · default, experimental** | Takes one in-memory snapshot at motion onset; a black gradient fades in from the right, then moves out to the right and dissolves as opening progresses; the snapshot dissolves into the live screen | The left half is captured; its center/hinge edge stays fixed while the outer left edge recedes when closing and returns when opening |
 | **V1 · live blur** | Right-heavy blur during opening | Left-half blur, strongest at the outside edge |
+| **V3 · flat gradient blur, experimental** | The live screen stays flat and is never captured; the region folding away, from the right edge inward in proportion to measured gyro rotation, darkens with a black gradient toward the edge and is blurred throughout | Same on the left half, from the outer left edge toward the hinge |
 
-Turn off **V2 · capture + black gradient** (`V2 · 캡처 + 블랙 그라디언트`) in the
-app to return to V1. Mode changes restart the engine if enabled.
+Pick **V1 / V2 / V3** under **Effect mode** (`효과 방식`) in the app. Mode changes
+restart the engine if enabled. V3 never captures the screen, so lock-screen capture
+limits do not apply; it shares V2's onset detection, gyro depth and idle dissolve.
+There is no solid black block: the darkening region is a gradient, transparent at its
+boundary and darkest at the outer edge, with blur that strengthens the same way. It
+reaches at most 60% of the pane, a visual calibration value, not a measured hinge
+angle. For a temporary USB trial use `run --v3`. A first USB trial on SM-F966N
+started, drew and released the V3 layer during a physical closing; the visual
+tuning is still being adjusted from user feedback.
 
 - Overall effect intensity: **50–150%**.
 - For a temporary USB comparison without extra border blur, add `--no-edge-blur` to the `run --v2` command. This does not change app settings.
@@ -137,7 +145,7 @@ angle sensor and may delay the effect.
 - Keep the terminal session and USB connection open during the trial. Continued operation after disconnection is not guaranteed.
 - **If the app is already enabled, turn the effect off in the app or its notification first.** Do not run both modes at once.
 - Set `--seconds` to a value from 1–3600 to change the duration. This mode does not start automatically after a reboot.
-- The default V1 trial does not capture the screen. Add `--v2` to test the experimental snapshot/black-gradient effect; its snapshots stay in memory. Neither mode saves or uploads screen content.
+- The default V1 trial does not capture the screen. Add `--v2` to test the experimental snapshot/black-gradient effect; its snapshots stay in memory. Add `--v3` for the flat black mask, which never captures. No mode saves or uploads screen content.
 
 To stop before the timer expires, run this in another terminal:
 
@@ -154,7 +162,7 @@ For ongoing use and an intensity control UI, use the app setup below.
 [AGENTS.md](AGENTS.md) contains the agent workflow and user communication guidance
 (in Korean).
 
-## Single-app setup (0.4.14)
+## Single-app setup (0.5.0)
 
 **Shizuku is no longer required.** This APK includes local wireless ADB pairing,
 engine startup, and reconnection. One UI is preserved, and the V1 blur remains
@@ -165,20 +173,28 @@ status above before relying on it for everyday use.
    the new APK. Stop any standalone trial too. The engines share a lock.
 2. [Build the debug APK](#build-and-verification) and install it, then open
    **Fold Transition** and allow notifications.
-3. Connect to a trusted Wi-Fi network and enable **Developer options → Wireless debugging**.
+3. Follow the **Connection setup** (`연결 준비`) checklist in the app. It shows live
+   status for developer options, wireless debugging and pairing. **Turn on wireless
+   debugging** (`무선 디버깅 켜기`) opens Developer options scrolled to the highlighted
+   **Wireless debugging** switch (verified on One UI 8); Android has no dedicated page
+   or intent, and the app cannot flip the switch itself, so enable it there on a
+   trusted Wi-Fi network.
 4. Tap **Initial connection setup** (`최초 연결 설정`) in this app. Open Android's
    **Pair device with pairing code**, keep that dialog open, then enter its six-digit
    code in the **Fold Transition notification**.
-5. Once pairing succeeds, return to the app, choose V2 or V1, and tap
+5. Once pairing succeeds, return to the app, choose V1, V2 or V3, and tap
    **Enable effect** (`효과 켜기`).
    Stop using **Disable effect** (`효과 끄기`) or the notification's stop action.
 
 The pairing notification stays available for ten minutes. Expand **Fold Transition
-initial connection** (`Fold Transition 최초 연결`) to reveal **Enter code**
-(`코드 입력`). If it has expired or an APK update
-interrupted setup, tap **Initial connection setup** again.
+initial setup** to reveal **Enter code**. If it has expired or an APK update
+interrupted setup, reopen the pairing step from **Connection → Pairing**.
 
-The UI is currently Korean. If pairing-port discovery or notifications are unavailable, use
+On first launch the app walks through four pages, one requirement each:
+notifications, developer options, wireless debugging and pairing. Each page
+re-checks itself when you return from Settings. The UI defaults to English; a
+button at the top right switches between English, Korean and Japanese, and the
+app always uses its light theme. If pairing-port discovery or notifications are unavailable, use
 split screen to keep Android's code dialog open while entering its pairing port
 and code through **Enter port and code manually** (`포트와 코드 직접 입력`). The
 pairing port differs from the connection port on the main Wireless debugging page.
@@ -255,7 +271,7 @@ The device identity test is separate from the local build and lint checks; see
 | Path | Purpose |
 | --- | --- |
 | `app/` | Settings UI, local ADB pairing and connection, foreground service, recovery |
-| `system/` | V1 blur / V2 snapshot renderer, fold state machine, gradients, JVM tests |
+| `system/` | V1 blur / V2 snapshot / V3 mask renderer, fold state machine, gradients, JVM tests |
 | `tools/` | Standalone ADB trials and sensor diagnostics |
 | `third_party/` | Vendored local ADB library, provenance and license texts |
 | `legacy/` | Earlier screen capture and Shizuku implementations, excluded from the build |
@@ -282,6 +298,14 @@ Give designers and engineers more authority to shape the experience. Make room
 for a more emotional approach to design: the motion, transitions, and small
 details that make everyday interactions feel natural and satisfying. We hope
 the care put into the experience will match the ambition of the technology.
+
+One concrete request: **open up the hinge angle data.** On this device the public
+`TYPE_HINGE_ANGLE` sensor mostly reports 0, 90 and 180 degrees, while the continuous
+"Folding Angle" sensor is locked behind `com.samsung.permission.SSENSOR`. Every
+effect in this project has to infer motion from gyroscope rotation and diagnostic
+event timestamps instead. A public, continuous hinge angle, ideally with low latency
+and a documented API, would let third-party developers build fold transitions that
+are accurate rather than estimated.
 
 ## License
 

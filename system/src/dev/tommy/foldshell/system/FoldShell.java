@@ -18,12 +18,24 @@ import java.lang.reflect.Method;
 import java.nio.channels.FileLock;
 
 /** ADB shell compositor effects only during physical fold motion.
- * V1 uses live blur; V2 retains one cover snapshot in memory and draws a black gradient.
+ * V1 uses live blur; V2 retains one cover snapshot in memory and draws a black gradient;
+ * V3 keeps the live screen flat and slides a black mask over the folding edge.
  * No launcher replacement, device-state override, or input window.
  * Hidden API failures stop the engine if the firmware changes.
  */
 public final class FoldShell implements SensorEventListener, DisplayManager.DisplayListener {
+    /** Rendering backend. BLUR=V1, SNAPSHOT=V2, MASK=V3. */
+    public enum Mode {
+        BLUR, SNAPSHOT, MASK;
+        public static Mode parse(String value) {
+            if ("v2".equals(value)) return SNAPSHOT;
+            if ("v3".equals(value)) return MASK;
+            return BLUR;
+        }
+        public String label() { return this == SNAPSHOT ? "v2-snapshot-gradient" : this == MASK ? "v3-flat-mask" : "compositor-blur"; }
+    }
     private static final String NAME = "FoldTransition-SystemBlur";
+    private final Mode mode;
     private final FoldMotion motion;
     private final BlackGradientRenderer blackRenderer;
     private final Handler handler = new Handler(Looper.myLooper());
@@ -68,9 +80,10 @@ public final class FoldShell implements SensorEventListener, DisplayManager.Disp
     private static void log(String message) {
         System.out.println(SystemClock.elapsedRealtime() + " " + message);
     }
-    private FoldShell(Context context, boolean v2) throws Exception {
-        motion = new FoldMotion(v2);
-        blackRenderer = v2 ? new BlackGradientRenderer(handler, this::fail) : null;
+    private FoldShell(Context context, Mode mode) throws Exception {
+        this.mode = mode;
+        motion = new FoldMotion(mode != Mode.BLUR);
+        blackRenderer = mode == Mode.BLUR ? null : new BlackGradientRenderer(handler, this::fail, mode == Mode.MASK);
         sensors = context.getSystemService(SensorManager.class);
         displays = context.getSystemService(DisplayManager.class);
         power = context.getSystemService(PowerManager.class);
@@ -128,9 +141,11 @@ public final class FoldShell implements SensorEventListener, DisplayManager.Disp
                 }
             } catch (Throwable error) { fail(error); }
         });
-        if (duration > 0) handler.postDelayed(() -> { close(); Looper.myLooper().quitSafely(); }, duration);
+        // The main Looper refuses quitSafely(), which previously crashed the process
+        // at expiry (exit 137). Close, flush, and exit explicitly instead.
+        if (duration > 0) handler.postDelayed(() -> exit(0), duration);
         log("READY sensor=" + hinge.getName() + " durationMs=" + duration
-                + " effects=physical-fold-only backend=" + (blackRenderer == null ? "compositor-blur" : "v2-snapshot-gradient"));
+                + " effects=physical-fold-only backend=" + mode.label());
     }
 
     @Override public void onSensorChanged(SensorEvent event) {
@@ -274,9 +289,11 @@ public final class FoldShell implements SensorEventListener, DisplayManager.Disp
             if (isInner || strongRight) {
                 // A global blur would flatten the spatial gradient, so clear it.
                 blur.invoke(transaction, surface, 0);
-                blurRegions.invoke(transaction, surface, edgeBlur
-                        ? BlurProfile.perspectiveRegions(width, height, radius, strongRight, edgeDepth)
-                        : BlurProfile.regions(width, height, radius, strongRight));
+                blurRegions.invoke(transaction, surface, !edgeBlur
+                        ? BlurProfile.regions(width, height, radius, strongRight)
+                        : mode == Mode.MASK
+                        ? BlurProfile.flatRegions(width, height, radius, strongRight, edgeDepth)
+                        : BlurProfile.perspectiveRegions(width, height, radius, strongRight, edgeDepth));
             } else {
                 // Closing cover keeps its uniform resolving effect.
                 blurRegions.invoke(transaction, surface, new float[0][]);
@@ -310,7 +327,13 @@ public final class FoldShell implements SensorEventListener, DisplayManager.Disp
         close();
         // close() removes the expiry callback. A failed standalone loop must
         // exit now rather than keep the shared process lock forever.
-        if (standalone) handler.getLooper().quitSafely();
+        if (standalone) exit(1);
+    }
+    /** Standalone runs exit here; the main Looper cannot be quit from a callback. */
+    private void exit(int code) {
+        close();
+        System.out.flush();
+        System.exit(code);
     }
     public void close() {
         if (closed) return;
@@ -324,15 +347,18 @@ public final class FoldShell implements SensorEventListener, DisplayManager.Disp
         log("STOPPED");
     }
     /** Called on the owning Looper in an ADB shell process. */
-    public static FoldShell persistent(float intensity) throws Exception { return persistent(intensity, false); }
+    public static FoldShell persistent(float intensity) throws Exception { return persistent(intensity, Mode.BLUR); }
     public static FoldShell persistent(float intensity, boolean v2) throws Exception {
+        return persistent(intensity, v2 ? Mode.SNAPSHOT : Mode.BLUR);
+    }
+    public static FoldShell persistent(float intensity, Mode mode) throws Exception {
         if (android.os.Process.myUid() != 2000) throw new IllegalStateException("Engine must run as ADB shell");
         if (!android.os.Build.MODEL.equals("SM-F966N")) throw new IllegalStateException("Unverified device: " + android.os.Build.MODEL);
         Class<?> at = Class.forName("android.app.ActivityThread");
         Object thread = at.getMethod("currentActivityThread").invoke(null);
         if (thread == null) thread = at.getMethod("systemMain").invoke(null);
         Context system = (Context) at.getMethod("getSystemContext").invoke(thread);
-        FoldShell shell = new FoldShell(system.createPackageContext("com.android.shell", 0), v2);
+        FoldShell shell = new FoldShell(system.createPackageContext("com.android.shell", 0), mode);
         shell.setIntensity(intensity);
         try { shell.start(0, true); } catch (Exception error) { shell.close(); throw error; }
         return shell;
@@ -360,8 +386,10 @@ public final class FoldShell implements SensorEventListener, DisplayManager.Disp
             Object thread = activityThread.getMethod("systemMain").invoke(null);
             Context system = (Context) activityThread.getMethod("getSystemContext").invoke(thread);
             Context context = system.createPackageContext("com.android.shell", 0);
-            FoldShell shell = new FoldShell(context, java.util.Arrays.asList(args).contains("v2"));
-            shell.extraEdgeBlur = !java.util.Arrays.asList(args).contains("no-edge-blur");
+            java.util.List<String> options = java.util.Arrays.asList(args);
+            Mode mode = options.contains("v3") ? Mode.MASK : options.contains("v2") ? Mode.SNAPSHOT : Mode.BLUR;
+            FoldShell shell = new FoldShell(context, mode);
+            shell.extraEdgeBlur = !options.contains("no-edge-blur");
             try { shell.start(seconds * 1000, java.util.Arrays.asList(args).contains("early")); Looper.loop(); }
             finally { shell.close(); }
             if (shell.failed) exitCode = 1;

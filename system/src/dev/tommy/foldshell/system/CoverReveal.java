@@ -50,6 +50,11 @@ public final class CoverReveal {
     public static float settleDepth(float from, long elapsedMs) {
         return from * (1 - ease(elapsedMs / 140f));
     }
+    /** V3: fraction of the pane hidden by the flat black mask. Visual calibration, not a hinge angle. */
+    public static float maskCoverage(float progress) {
+        if (!Float.isFinite(progress)) return 0;
+        return .6f * Math.max(0, Math.min(1, progress));
+    }
     /** Perspective size for a front-facing plane receding by 0..0.65 camera distances. */
     public static float depthScale(float progress) {
         float depth = .65f * Math.max(0, Math.min(1, progress));

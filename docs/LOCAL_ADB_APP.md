@@ -40,8 +40,11 @@ Do not assume this command preserves an existing installation or pairing identit
 ```
 
 The installed APK daemon returned RUNNING to STATUS and STOPPED to STOP via USB
-ADB. No daemon process remained afterward. The app_process command returned exit
-137, so this is not recorded as a clean exit-code test. App-owned wireless pairing
+ADB. No daemon process remained afterward. The app_process command used to return
+exit 137: the expiry and shutdown paths called `Looper.quitSafely()` on the main
+Looper, which throws `Main thread not allowed to quit` and crashed the process after
+cleanup. 0.5.0 exits explicitly instead; a 10-second standalone V3 trial on SM-F966N
+then ended with exit code 0. App-owned wireless pairing
 and recovery have not yet been verified. Required physical checks:
 
 1. Stop the old effect before upgrade, install, pair through the app notification.

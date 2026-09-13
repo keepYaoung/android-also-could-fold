@@ -20,10 +20,11 @@ public final class LocalFoldDaemon {
             Looper.prepareMainLooper();
             Handler handler = new Handler(Looper.myLooper());
             FoldShell engine;
-            try { engine = FoldShell.persistent(Float.parseFloat(args[0]), args.length > 1 && args[1].equals("v2")); }
+            try { engine = FoldShell.persistent(Float.parseFloat(args[0]), FoldShell.Mode.parse(args.length > 1 ? args[1] : "v1")); }
             catch (Exception error) { System.out.println("FOLD ERROR " + error.getClass().getSimpleName() + ": " + error.getMessage()); return; }
             lastRequest = SystemClock.elapsedRealtime();
-            Runnable shutdown = () -> { engine.close(); Looper.myLooper().quitSafely(); };
+            // The main Looper cannot be quit; exit explicitly after cleanup (fixes exit 137).
+            Runnable shutdown = () -> { engine.close(); System.out.flush(); System.exit(0); };
             handler.postDelayed(new Runnable() {
                 @Override public void run() {
                     if (SystemClock.elapsedRealtime() - lastRequest >= 45000) shutdown.run();

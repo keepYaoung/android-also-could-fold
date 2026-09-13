@@ -10,10 +10,13 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 
-/** V2: memory snapshots, panel-specific perspective, and a redacted-lock mask fallback. */
+/** V2: memory snapshots, panel-specific perspective, and a redacted-lock mask fallback.
+ * V3 (flatMask): no capture; the live screen stays flat while the folding-away region
+ * darkens with a black gradient and blur, in proportion to the same relative-gyro depth. */
 final class BlackGradientRenderer {
     private final Handler handler;
     private final Consumer<Throwable> failure;
+    private final boolean flatMask;
     private final ExecutorService captureThread = Executors.newSingleThreadExecutor(r -> {
         Thread thread = new Thread(r, "FoldSnapshot"); thread.setDaemon(true); return thread;
     });
@@ -39,14 +42,21 @@ final class BlackGradientRenderer {
     private final float[] sourceCorners = new float[8], targetCorners = new float[8];
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
 
-    BlackGradientRenderer(Handler handler, Consumer<Throwable> failure) {
-        this.handler = handler; this.failure = failure;
+    BlackGradientRenderer(Handler handler, Consumer<Throwable> failure) { this(handler, failure, false); }
+    BlackGradientRenderer(Handler handler, Consumer<Throwable> failure, boolean flatMask) {
+        this.handler = handler; this.failure = failure; this.flatMask = flatMask;
     }
+    boolean flat() { return flatMask; }
     void render(String display, Object address, int w, int h, int layerStack,
                 boolean isInner, boolean isLocked, float amount, float visibility, boolean opening, float targetProgress, float entryProgress, float intensity) throws Exception {
         if (closed) return;
         if (!identity.equals(display) || width != w || height != h || inner != isInner || stack != layerStack || locked != isLocked) {
             clear(); identity = display; width = w; height = h; inner = isInner; stack = layerStack; locked = isLocked;
+        }
+        if (!requested && flatMask) {
+            // V3 never captures: the live screen stays visible under a flat mask.
+            requested = true; captureUnavailable = true;
+            System.out.println("V3 mask panel=" + (isInner ? "inner" : "cover") + " locked=" + isLocked);
         }
         if (!requested) {
             requested = true; captureStarted = android.os.SystemClock.elapsedRealtime();
@@ -141,6 +151,7 @@ final class BlackGradientRenderer {
         }
         float reveal = inner ? coverProgress : opening ? CoverReveal.opacity(coverProgress) : 1;
         int left = !inner && opening ? Math.round(pane * CoverReveal.left(coverProgress)) : 0;
+        if (flatMask) { drawFlatMask(pane, visibility, intensity); return; }
         // Cover reveal already has its own envelope: multiplying by angle strength
         // again made the entrance nearly invisible before the coarse 90° event.
         int alpha = Math.round(255 * clamp(.94f * (!inner && opening
@@ -218,6 +229,45 @@ final class BlackGradientRenderer {
         lastAlpha = alpha; lastVisibility = bitmapAlpha; lastLeft = left; lastProgress = coverProgress;
     }
     float depthProgress() { return coverProgress; }
+
+    /** V3: the folding-away region darkens with a gradient toward its outer edge. Never a solid block. */
+    private void drawFlatMask(int pane, float visibility, float intensity) throws Exception {
+        float coverage = CoverReveal.maskCoverage(coverProgress);
+        // Cover: enters from the right edge. Inner left half: enters from the outer left edge.
+        int edge = Math.round(pane * (inner ? coverage : 1 - coverage));
+        int maskAlpha = Math.round(255 * clamp(.94f * intensity));
+        int visible = Math.round(255 * clamp(visibility));
+        if (maskAlpha == lastAlpha && visible == lastVisibility && edge == lastLeft && coverProgress == lastProgress) return;
+        // Start slightly inside the visible area so the boundary has no hard line.
+        float soft = pane * .08f;
+        Canvas canvas = canvasSurface.lockCanvas(null);
+        try {
+            canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
+            paint.setShader(null); paint.setAlpha(255);
+            if (coverage > 0) {
+                int[] colors = {Color.TRANSPARENT, Color.argb(Math.round(maskAlpha * .3f), 0, 0, 0),
+                        Color.argb(Math.round(maskAlpha * .72f), 0, 0, 0), Color.argb(maskAlpha, 0, 0, 0)};
+                float[] stops = {0, .35f, .7f, 1};
+                if (inner) {
+                    float start = Math.min(pane, edge + soft);
+                    paint.setShader(new LinearGradient(start, 0, 0, 0, colors, stops, Shader.TileMode.CLAMP));
+                    canvas.drawRect(0, 0, start, height, paint);
+                } else {
+                    float start = Math.max(0, edge - soft);
+                    paint.setShader(new LinearGradient(start, 0, pane, 0, colors, stops, Shader.TileMode.CLAMP));
+                    canvas.drawRect(start, 0, pane, height, paint);
+                }
+            }
+        } finally { paint.setShader(null); canvasSurface.unlockCanvasAndPost(canvas); }
+        try (SurfaceControl.Transaction t = new SurfaceControl.Transaction()) {
+            SurfaceControl.Transaction.class.getMethod("setLayerStack", SurfaceControl.class, int.class).invoke(t, layer, stack);
+            t.setLayer(layer, 2000000);
+            t.setAlpha(layer, clamp(visibility));
+            SurfaceControl.Transaction.class.getMethod("show", SurfaceControl.class).invoke(t, layer);
+            t.apply();
+        }
+        lastAlpha = maskAlpha; lastVisibility = visible; lastLeft = edge; lastProgress = coverProgress;
+    }
 
     private static boolean isBlank(Bitmap bitmap) {
         for (int y = 0; y < bitmap.getHeight(); y += Math.max(1, bitmap.getHeight() / 32))
